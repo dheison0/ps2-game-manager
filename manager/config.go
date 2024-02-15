@@ -23,6 +23,8 @@ type GameConfig struct {
 
 const GameConfigSize = int(unsafe.Sizeof(GameConfig{}))
 
+var games []GameConfig
+
 func (g GameConfig) AsBytes() []byte {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
@@ -32,12 +34,12 @@ func (g GameConfig) AsBytes() []byte {
 	return buffer.Bytes()
 }
 
-func ReadFromFile(filename string) []GameConfig {
+func ReadFromFile(filename string) int {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %v", err)
 	}
-	var games []GameConfig
+	games = []GameConfig{}
 	for i := 0; i < len(data)/GameConfigSize; i++ {
 		var game GameConfig
 		offset := i * GameConfigSize
@@ -52,5 +54,9 @@ func ReadFromFile(filename string) []GameConfig {
 		copy(game.Padding[0:], data[offset:])
 		games = append(games, game)
 	}
+	return len(games)
+}
+
+func GetGames() []GameConfig {
 	return games
 }

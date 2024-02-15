@@ -14,10 +14,17 @@ func main() {
 		fmt.Println("Missing config file!")
 		os.Exit(1)
 	}
-	games := manager.ReadFromFile(os.Args[1])
-	fmt.Printf("%v games found!\n", len(games))
-	root := tui.Menu(games)
-	app := tview.NewApplication().SetRoot(root, true)
+	gamesCount := manager.ReadFromFile(os.Args[1])
+	if gamesCount == 0 {
+		fmt.Println("No games found!")
+		os.Exit(2)
+	}
+	fmt.Printf("%v games found!\n", gamesCount)
+	app := tview.NewApplication()
+	pages := tview.NewPages()
+	pages.AddAndSwitchToPage("Menu", tui.Menu(app, pages), true)
+	app.EnableMouse(true)
+	app.SetRoot(pages, true)
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
