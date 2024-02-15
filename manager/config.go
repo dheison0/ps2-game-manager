@@ -2,9 +2,6 @@ package manager
 
 import (
 	"bytes"
-	"encoding/gob"
-	"log"
-	"os"
 	"unsafe"
 )
 
@@ -23,40 +20,25 @@ type GameConfig struct {
 
 const GameConfigSize = int(unsafe.Sizeof(GameConfig{}))
 
-var games []GameConfig
-
-func (g GameConfig) AsBytes() []byte {
-	var buffer bytes.Buffer
-	encoder := gob.NewEncoder(&buffer)
-	if err := encoder.Encode(g); err != nil {
-		log.Fatalf("Failed to transform game config into slice of bytes: %v", err)
-	}
-	return buffer.Bytes()
+func (g *GameConfig) AsBytes() []byte {
+	data := bytes.Join([][]byte{
+		g.Name[:],
+		g.Image[:],
+		{byte(g.Parts), byte(g.Media)},
+		g.Padding[:],
+	}, []byte{})
+	return data
 }
 
-func ReadFromFile(filename string) int {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		log.Fatalf("Failed to read config file: %v", err)
-	}
-	games = []GameConfig{}
-	for i := 0; i < len(data)/GameConfigSize; i++ {
-		var game GameConfig
-		offset := i * GameConfigSize
-		copy(game.Name[0:], data[offset:offset+len(game.Name)])
-		offset += len(game.Name)
-		copy(game.Image[0:], data[offset:offset+len(game.Image)])
-		offset += len(game.Image)
-		game.Parts = int8(data[offset])
-		offset++
-		game.Media = int8(data[offset])
-		offset++
-		copy(game.Padding[0:], data[offset:])
-		games = append(games, game)
-	}
-	return len(games)
-}
-
-func GetGames() []GameConfig {
-	return games
+func (g *GameConfig) FromBytes(data []byte) {
+	offset := 0
+	copy(g.Name[:], data[offset:])
+	offset += len(g.Name)
+	copy(g.Image[:], data[offset:])
+	offset += len(g.Image)
+	g.Parts = int8(data[offset])
+	offset++
+	g.Media = int8(data[offset])
+	offset++
+	copy(g.Padding[:], data[offset:])
 }

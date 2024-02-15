@@ -7,19 +7,36 @@ import (
 	"github.com/rivo/tview"
 )
 
-func Menu(app *tview.Application, pages *tview.Pages) *tview.List {
-	games := manager.GetGames()
+var app *tview.Application
+var pages *tview.Pages
+
+func TUI() *tview.Application {
+	app = tview.NewApplication()
+	pages = tview.NewPages()
+	RefreshPages()
+	app.EnableMouse(true)
+	app.SetRoot(pages, true)
+	return app
+}
+
+func RefreshPages() {
+	pages.AddPage("Menu", Menu(), true, true)
+}
+
+func Menu() tview.Primitive {
+	games := manager.GetAllGames()
 	list := tview.NewList()
 	list.SetTitle("PS2 Game Manager")
 	list.SetBorder(true)
 	for i := range games {
-		list.AddItem(fmt.Sprintf("%s", games[i].Name), "", rune(i), func() {
-			game := games[list.GetCurrentItem()]
-			gamePage := GameActions(app, pages, game)
+		game := games[i]
+		list.AddItem(string(game.Name[:]), fmt.Sprintf("Image: %s", game.Image), rune(i+65), func() {
+			index := list.GetCurrentItem()
+			gamePage := GameActions(index)
 			pages.AddAndSwitchToPage("Game", gamePage, true)
 		})
 	}
-	list.AddItem("Quit", "Exit program", 'q', func() {
+	list.AddItem("Quit", "Exit program", '"', func() {
 		app.Stop()
 	})
 	return list

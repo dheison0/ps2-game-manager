@@ -1,31 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"ps2manager/manager"
 	"ps2manager/tui"
-
-	"github.com/rivo/tview"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Missing config file!")
-		os.Exit(1)
+		log.Fatalln("config file not set!")
 	}
-	gamesCount := manager.ReadFromFile(os.Args[1])
-	if gamesCount == 0 {
-		fmt.Println("No games found!")
-		os.Exit(2)
+	if err := manager.InitManager(os.Args[1]); err != nil {
+		log.Fatalf("failed to init game manager: %v\n", err)
 	}
-	fmt.Printf("%v games found!\n", gamesCount)
-	app := tview.NewApplication()
-	pages := tview.NewPages()
-	pages.AddAndSwitchToPage("Menu", tui.Menu(app, pages), true)
-	app.EnableMouse(true)
-	app.SetRoot(pages, true)
-	if err := app.Run(); err != nil {
+	if err := tui.TUI().Run(); err != nil {
 		panic(err)
 	}
 }
