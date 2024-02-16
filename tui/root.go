@@ -10,7 +10,7 @@ import (
 var app *tview.Application
 var pages *tview.Pages
 
-func TUI() *tview.Application {
+func Init() *tview.Application {
 	app = tview.NewApplication()
 	pages = tview.NewPages()
 	RefreshPages()
@@ -26,15 +26,18 @@ func RefreshPages() {
 func Menu() tview.Primitive {
 	games := manager.GetAllGames()
 	list := tview.NewList()
-	list.SetTitle("PS2 Game Manager")
+	list.SetTitle(" PS2 Game Manager ")
 	list.SetBorder(true)
-	for i := range games {
-		game := games[i]
-		list.AddItem(string(game.Name[:]), fmt.Sprintf("Image: %s", game.Image), rune(i+65), func() {
-			index := list.GetCurrentItem()
-			gamePage := GameActions(index)
-			pages.AddAndSwitchToPage("Game", gamePage, true)
-		})
+	for i, game := range games {
+		list.AddItem(
+			string(game.Name[:]),
+			fmt.Sprintf("Image: %s", game.Image),
+			rune(i+65),
+			func() {
+				actions := GameActions(list.GetCurrentItem())
+				pages.AddAndSwitchToPage("Game", actions, true)
+			},
+		)
 	}
 	list.AddItem("Quit", "Exit program", '"', func() {
 		app.Stop()

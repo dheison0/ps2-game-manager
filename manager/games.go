@@ -43,8 +43,8 @@ func GetGame(index int) GameConfig {
 }
 
 func UpdateGame(index int, game GameConfig) error {
-	for i := range games {
-		if games[i].Name == game.Name {
+	for _, g := range games {
+		if g.Name == game.Name {
 			return errors.New("game with the same name already exists")
 		}
 	}
@@ -59,9 +59,10 @@ func RemoveGame(index int) error {
 		if file.IsDir() {
 			continue
 		}
-		n := bytes.IndexByte(game.Image[:], 0)
 		name := file.Name()
-		if strings.Contains(name, strings.Split(string(game.Image[:n]), ".")[1]) {
+		n := bytes.IndexByte(game.Image[:], 0)
+		image := strings.Split(string(game.Image[:n]), ".")[1]
+		if strings.Contains(name, image) {
 			if err := os.Remove(path.Join(workingDir, name)); err != nil {
 				return err
 			}
@@ -73,9 +74,8 @@ func RemoveGame(index int) error {
 
 func WriteChanges() error {
 	data := make([]byte, len(games)*GameConfigSize)
-	for i := range games {
-		gameData := games[i].AsBytes()
-		copy(data[i*GameConfigSize:], gameData)
+	for i, game := range games {
+		copy(data[i*GameConfigSize:], game.AsBytes())
 	}
 	return os.WriteFile(configFile, data, 0644)
 }

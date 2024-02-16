@@ -7,7 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func GameActions(index int) *tview.List {
+func GameActions(index int) tview.Primitive {
 	game := manager.GetGame(index)
 	actions := tview.NewList()
 	actions.SetBorder(true)
@@ -33,8 +33,15 @@ func ActionRename(index int) tview.Primitive {
 	text.SetText(fmt.Sprintf("Name: %s\nImage: %s", game.Name, game.Image))
 
 	form := tview.NewForm()
-	form.AddInputField("New name", newName, len(game.Name), func(t string, _ rune) bool { return len(t) <= len(game.Name) }, func(t string) { newName = t })
+	form.AddInputField(
+		"New name:", newName, len(game.Name),
+		func(t string, _ rune) bool {
+			return len(t) <= len(game.Name)
+		},
+		func(t string) { newName = t },
+	)
 	form.AddButton("Save", func() {
+		game.Name = [len(game.Name)]byte{}
 		copy(game.Name[:], []byte(newName))
 		manager.UpdateGame(index, game)
 		RefreshPages()
@@ -53,23 +60,22 @@ func ActionDelete(index int) tview.Primitive {
 	modal.SetText(fmt.Sprintf("Do you really want to delete '%s' game?", game.Name))
 	modal.AddButtons([]string{"Abort", "Confirm"})
 	modal.SetDoneFunc(func(buttonID int, _ string) {
-		switch buttonID {
-		case 1:
-			err := manager.RemoveGame(index)
-			if err != nil {
-				errorModal := tview.NewModal()
-				errorModal.SetText(fmt.Sprintf("Failed to remove files or game from config:\n%v", err))
-				errorModal.AddButtons([]string{"Done"})
-				errorModal.SetDoneFunc(func(_ int, _ string) {
-					pages.AddAndSwitchToPage("Game", GameActions(index), true)
-				})
-				pages.AddAndSwitchToPage("Error", errorModal, true)
-			}
-			RefreshPages()
-			pages.SwitchToPage("Menu")
-		default:
+		if buttonID != 1 {
 			pages.AddAndSwitchToPage("Game", GameActions(index), true)
 		}
+		err := manager.RemoveGame(index)
+		if err != nil {
+			errorModal := tview.NewModal()
+			errorModal.SetText(fmt.Sprintf("Failed to remove files or game from config:\n%v", err))
+			errorModal.AddButtons([]string{"Done"})
+			errorModal.SetDoneFunc(func(_ int, _ string) {
+				pages.AddAndSwitchToPage("Game", GameActions(index), true)
+			})
+			pages.AddAndSwitchToPage("Error", errorModal, true)
+		}
+		RefreshPages()
+		pages.SwitchToPage("Menu")
+
 	})
 	return modal
 }
