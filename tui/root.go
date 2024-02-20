@@ -30,8 +30,8 @@ func Menu() tview.Primitive {
 	list.SetBorder(true)
 	for i, game := range games {
 		list.AddItem(
-			string(game.Name[:]),
-			fmt.Sprintf("Image: %s", game.Image),
+			string(game.Config.Name[:]),
+			fmt.Sprintf("Image: %s", game.Config.Image),
 			rune(i+65),
 			func() {
 				actions := GameActions(list.GetCurrentItem())

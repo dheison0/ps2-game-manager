@@ -8,10 +8,10 @@ import (
 )
 
 func GameActions(index int) tview.Primitive {
-	game := manager.GetGame(index)
+	gameCfg := manager.GetGame(index).Config
 	actions := tview.NewList()
 	actions.SetBorder(true)
-	actions.SetTitle(fmt.Sprintf("Actions for '%s'", game.Name))
+	actions.SetTitle(fmt.Sprintf("Actions for '%s'", gameCfg.Name))
 	actions.AddItem("Rename", "Rename game", 'r', func() {
 		pages.AddAndSwitchToPage("Rename", ActionRename(index), true)
 	})
@@ -23,27 +23,27 @@ func GameActions(index int) tview.Primitive {
 }
 
 func ActionRename(index int) tview.Primitive {
-	game := manager.GetGame(index)
-	newName := string(game.Name[:])
+	gameCfg := manager.GetGame(index).Config
+	newName := string(gameCfg.Name[:])
 
 	flex := tview.NewFlex()
 	flex.SetDirection(tview.FlexRow)
 
 	text := tview.NewTextView()
-	text.SetText(fmt.Sprintf("Name: %s\nImage: %s", game.Name, game.Image))
+	text.SetText(fmt.Sprintf("Name: %s\nImage: %s", gameCfg.Name, gameCfg.Image))
 
 	form := tview.NewForm()
 	form.AddInputField(
-		"New name:", newName, len(game.Name),
+		"New name:", newName, len(gameCfg.Name),
 		func(t string, _ rune) bool {
-			return len(t) <= len(game.Name)
+			return len(t) <= len(gameCfg.Name)
 		},
 		func(t string) { newName = t },
 	)
 	form.AddButton("Save", func() {
-		game.Name = [len(game.Name)]byte{}
-		copy(game.Name[:], []byte(newName))
-		manager.UpdateGame(index, game)
+		gameCfg.Name = [len(gameCfg.Name)]byte{}
+		copy(gameCfg.Name[:], []byte(newName))
+		manager.UpdateGameConfig(index, gameCfg)
 		RefreshPages()
 		pages.SwitchToPage("Menu")
 	})
@@ -55,9 +55,9 @@ func ActionRename(index int) tview.Primitive {
 }
 
 func ActionDelete(index int) tview.Primitive {
-	game := manager.GetGame(index)
+	gameCfg := manager.GetGame(index).Config
 	modal := tview.NewModal()
-	modal.SetText(fmt.Sprintf("Do you really want to delete '%s' game?", game.Name))
+	modal.SetText(fmt.Sprintf("Do you really want to delete '%s' game?", gameCfg.Name))
 	modal.AddButtons([]string{"Abort", "Confirm"})
 	modal.SetDoneFunc(func(buttonID int, _ string) {
 		if buttonID != 1 {

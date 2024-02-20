@@ -2,6 +2,9 @@ package manager
 
 import (
 	"bytes"
+	"os"
+	"ps2manager/manager/oplCRC32"
+	"strings"
 	"unsafe"
 )
 
@@ -41,4 +44,30 @@ func (g *GameConfig) FromBytes(data []byte) {
 	g.Media = int8(data[offset])
 	offset++
 	copy(g.Padding[:], data[offset:])
+}
+
+type GameFiles struct {
+	Files []string
+}
+
+func (f *GameFiles) UpdateHash(name string) error {
+	oldHash := strings.Split(f.Files[0], ".")[1]
+	newHash := oplCRC32.Crc32(name)
+	for i, p := range f.Files {
+		newName := strings.Replace(p, oldHash, newHash, 1)
+		if err := os.Rename(p, newName); err != nil {
+			return err
+		}
+		f.Files[i] = newName
+	}
+	return nil
+}
+
+func (f *GameFiles) RemoveAll() error {
+	for _, f := range f.Files {
+		if err := os.Remove(f); err != nil {
+			return err
+		}
+	}
+	return nil
 }
