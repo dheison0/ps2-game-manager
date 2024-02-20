@@ -3,7 +3,7 @@ package manager
 import (
 	"bytes"
 	"os"
-	"ps2manager/manager/oplCRC32"
+	"ps2manager/utils/oplCRC32"
 	"strings"
 	"unsafe"
 )
@@ -51,6 +51,9 @@ type GameFiles struct {
 }
 
 func (f *GameFiles) UpdateHash(name string) error {
+	if len(f.Files) == 0 {
+		return nil
+	}
 	oldHash := strings.Split(f.Files[0], ".")[1]
 	newHash := oplCRC32.Crc32(name)
 	for i, p := range f.Files {

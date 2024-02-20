@@ -14,7 +14,9 @@ func main() {
 	if err := manager.InitManager(os.Args[1]); err != nil {
 		log.Fatalf("failed to init game manager: %v\n", err)
 	}
-	if err := tui.Init().Run(); err != nil {
+	ui := tui.Init()
+	defer ui.Stop()
+	if err := ui.Run(); err != nil {
 		panic(err)
 	}
 }

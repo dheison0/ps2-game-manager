@@ -8,10 +8,10 @@ import (
 )
 
 func GameActions(index int) tview.Primitive {
-	gameCfg := manager.GetGame(index).Config
+	game := manager.Get(index)
 	actions := tview.NewList()
 	actions.SetBorder(true)
-	actions.SetTitle(fmt.Sprintf("Actions for '%s'", gameCfg.Name))
+	actions.SetTitle(fmt.Sprintf("Actions for '%s'", game.GetName()))
 	actions.AddItem("Rename", "Rename game", 'r', func() {
 		pages.AddAndSwitchToPage("Rename", ActionRename(index), true)
 	})
@@ -23,29 +23,28 @@ func GameActions(index int) tview.Primitive {
 }
 
 func ActionRename(index int) tview.Primitive {
-	gameCfg := manager.GetGame(index).Config
-	newName := string(gameCfg.Name[:])
+	game := manager.Get(index)
+	newName := game.GetName()
 
 	flex := tview.NewFlex()
 	flex.SetDirection(tview.FlexRow)
 
 	text := tview.NewTextView()
-	text.SetText(fmt.Sprintf("Name: %s\nImage: %s", gameCfg.Name, gameCfg.Image))
+	text.SetText(fmt.Sprintf("Name: %s\nImage: %s", game.GetName(), game.GetImage()))
 
 	form := tview.NewForm()
 	form.AddInputField(
-		"New name:", newName, len(gameCfg.Name),
+		"New name:", newName, len(game.Config.Name),
 		func(t string, _ rune) bool {
-			return len(t) <= len(gameCfg.Name)
+			return len(t) <= len(game.Config.Name)
 		},
 		func(t string) { newName = t },
 	)
 	form.AddButton("Save", func() {
-		gameCfg.Name = [len(gameCfg.Name)]byte{}
-		copy(gameCfg.Name[:], []byte(newName))
-		manager.UpdateGameConfig(index, gameCfg)
-		RefreshPages()
-		pages.SwitchToPage("Menu")
+		if err := manager.Rename(index, newName); err != nil {
+			ErrorDialog("Failed to rename game to '" + newName + "'!")
+		}
+		Menu()
 	})
 	form.AddButton("Cancel", func() { pages.SwitchToPage("Menu") })
 
@@ -55,27 +54,19 @@ func ActionRename(index int) tview.Primitive {
 }
 
 func ActionDelete(index int) tview.Primitive {
-	gameCfg := manager.GetGame(index).Config
+	game := manager.Get(index)
 	modal := tview.NewModal()
-	modal.SetText(fmt.Sprintf("Do you really want to delete '%s' game?", gameCfg.Name))
+	modal.SetText(fmt.Sprintf("Do you really want to delete '%s' game?", game.GetName()))
 	modal.AddButtons([]string{"Abort", "Confirm"})
 	modal.SetDoneFunc(func(buttonID int, _ string) {
 		if buttonID != 1 {
 			pages.AddAndSwitchToPage("Game", GameActions(index), true)
 		}
-		err := manager.RemoveGame(index)
+		err := manager.Delete(index)
 		if err != nil {
-			errorModal := tview.NewModal()
-			errorModal.SetText(fmt.Sprintf("Failed to remove files or game from config:\n%v", err))
-			errorModal.AddButtons([]string{"Done"})
-			errorModal.SetDoneFunc(func(_ int, _ string) {
-				pages.AddAndSwitchToPage("Game", GameActions(index), true)
-			})
-			pages.AddAndSwitchToPage("Error", errorModal, true)
+			ErrorDialog(fmt.Sprintf("Failed to remove files or game from config:\n%v", err))
 		}
-		RefreshPages()
-		pages.SwitchToPage("Menu")
-
+		Menu()
 	})
 	return modal
 }
