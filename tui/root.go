@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ps2manager/manager"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -41,25 +42,31 @@ func Menu() {
 }
 
 func DownloadCovers() {
+	textView := tview.NewTextView().
+		SetRegions(true).
+		SetTextAlign(tview.AlignCenter).
+		SetChangedFunc(func() { app.ForceDraw() }).
+		SetDynamicColors(true)
+	textView.SetTitle("Downloading covers...").
+		SetBorder(true).
+		SetBorderPadding(2, 2, 2, 2)
+	pages.AddAndSwitchToPage("DownloadProgress", textView, true)
+
 	games := manager.GetAll()
-	textBox := tview.NewTextView()
-	textBox.SetChangedFunc(func() {
-		app.Draw()
-	})
 	var toDownload []manager.Game
 	for _, g := range games {
 		if !g.IsCoverInstalled() {
 			toDownload = append(toDownload, g)
 		}
 	}
-	textBox.SetTitle("Downloading covers...")
-	pages.AddAndSwitchToPage("DownloadProgress", textBox, true)
+
 	completed := 0
 	errors := 0
+
 	for _, g := range toDownload {
-		textBox.SetText(
+		textView.SetText(
 			fmt.Sprintf(
-				"Download covers for %d games\nSuccess: %d  Errors: %d",
+				"Download covers for [cyan]%d[white] games\nSuccess: [green]%d[white]  Errors: [red]%d",
 				len(toDownload), completed, errors,
 			),
 		)
@@ -70,9 +77,15 @@ func DownloadCovers() {
 			errors += 1
 		}
 	}
-	dialog := tview.NewModal()
-	dialog.SetText(fmt.Sprintf("Download process finished with %d errors and %d success.", errors, completed))
-	dialog.AddButtons([]string{"Done"})
-	dialog.SetDoneFunc(func(_ int, _ string) { Menu() })
-	pages.AddAndSwitchToPage("Download", dialog, true)
+
+	textView.SetDoneFunc(func(_ tcell.Key) { Menu() })
+	textView.SetText(
+		fmt.Sprintf(
+			`Download covers for [cyan]%d[white] games
+Success: [green]%d[white]  Errors: [red]%d
+
+[blue]Press enter to go back...`,
+			len(toDownload), completed, errors,
+		),
+	)
 }
