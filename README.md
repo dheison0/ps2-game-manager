@@ -8,13 +8,13 @@ more specififc my server that's where I keep my ROMs
 This can:
 
   - List games;
-  - Rename and;
-  - Delete from disk.
+  - Rename;
+  - Delete from disk and;
+  - Insert game covers.
 
 This will can:
 
-  - Install new games and;
-  - Insert game covers.
+  - Install new games;
 
 # Build and run
 
