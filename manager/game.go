@@ -1,7 +1,9 @@
 package manager
 
 import (
+	"bytes"
 	"fmt"
+	"image"
 	"io"
 	"net/http"
 	"os"
@@ -10,7 +12,11 @@ import (
 	"strings"
 )
 
-const COVER_UNFORMATED_URL = "https://raw.githubusercontent.com/xlenore/ps2-covers/main/covers/default/%s.jpg"
+const (
+	COVER_UNFORMATED_URL = "https://raw.githubusercontent.com/xlenore/ps2-covers/main/covers/default/%s.jpg"
+	COVER_MAX_WIDTH      = 360
+	COVER_MAX_HEIGHT     = 640
+)
 
 type Game struct {
 	Config         GameConfig
@@ -38,9 +44,9 @@ func (g *Game) IsCoverInstalled() bool {
 }
 
 func (g *Game) DownloadCover() error {
-	image := strings.Replace(g.GetImage(), "_", "-", 1)
-	image = strings.Replace(image, ".", "", 1)
-	response, err := http.Get(fmt.Sprintf(COVER_UNFORMATED_URL, image))
+	gameImage := strings.Replace(g.GetImage(), "_", "-", 1)
+	gameImage = strings.Replace(gameImage, ".", "", 1)
+	response, err := http.Get(fmt.Sprintf(COVER_UNFORMATED_URL, gameImage))
 	if err != nil {
 		return ErrCoverRequestFailed
 	}
@@ -48,9 +54,17 @@ func (g *Game) DownloadCover() error {
 	if response.StatusCode != 200 {
 		return ErrCoverNotFound
 	}
-	cover, err := io.ReadAll(response.Body)
+	coverData, _ := io.ReadAll(response.Body)
+	cover := coverData
+	coverOriginal, _, err := image.DecodeConfig(bytes.NewReader(coverData))
 	if err != nil {
 		return err
+	}
+	if coverOriginal.Width > COVER_MAX_WIDTH || coverOriginal.Height > COVER_MAX_HEIGHT {
+		cover, err = utils.ResizeJPG(bytes.NewReader(coverData), COVER_MAX_WIDTH, COVER_MAX_HEIGHT)
+		if err != nil {
+			return err
+		}
 	}
 	return os.WriteFile(g.CoverPath, cover, 0644)
 }
