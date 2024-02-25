@@ -46,10 +46,7 @@ func ReadConfigFile() error {
 	}
 	for i := 0; i < len(data)/GameConfigSize; i++ {
 		offset := i * GameConfigSize
-		game, err := NewGameFromBytes(data[offset:offset+GameConfigSize], workingDir)
-		if err != nil {
-			return err
-		}
+		game := NewGameFromBytes(data[offset:offset+GameConfigSize], workingDir)
 		if len(game.Parts.Files) < int(game.Config.Parts) {
 			fmt.Printf("Game '%s' is missing files\n", game.GetName())
 		}

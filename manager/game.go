@@ -45,17 +45,14 @@ func NewGame(name, image string, size int64, dataDir string) Game {
 	return game
 }
 
-func NewGameFromBytes(data []byte, workDir string) (Game, error) {
-	game := Game{}
-	game.Config.FromBytes(data)
-	files, _ := os.ReadDir(workDir)
-	for _, f := range files {
-		if !f.IsDir() && strings.Contains(f.Name(), game.GetImage()) {
-			game.Parts.Files = append(game.Parts.Files, path.Join(workDir, f.Name()))
-		}
+func NewGameFromBytes(data []byte, dataDir string) Game {
+	config := GameConfig{}
+	config.FromBytes(data)
+	size := int64(MAX_CD_SIZE)
+	if config.Media == MediaDVD {
+		size *= 2
 	}
-	game.CoverPath = path.Join(workDir, "ART", game.GetImage()+"_COV.jpg")
-	return game, nil
+	return NewGame(utils.BytesToString(config.Name[:]), utils.BytesToString(config.Image[:]), size, dataDir)
 }
 
 func (g *Game) IsCoverInstalled() bool {
