@@ -3,8 +3,16 @@ package manager
 import (
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path"
+	"ps2manager/utils"
+	"strings"
+)
+
+const (
+	SYSTEM_CONFIG_NAME = "/SYSTEM.CNF"
 )
 
 var configFile string
@@ -56,6 +64,68 @@ func GetAll() []Game {
 
 func Get(index int) Game {
 	return games[index]
+}
+
+func Add(game Game) error {
+	games = append(games, game)
+	return WriteChanges()
+}
+
+func Install(isoPath, name string, progress chan int) error {
+	systemCnf, err := utils.ReadFileFromISO(isoPath, SYSTEM_CONFIG_NAME)
+	if err != nil {
+		return err
+	}
+	isoFile, _ := os.Stat(isoPath)
+	image := strings.Split(strings.Split(string(systemCnf), ":\\")[1], ";")[0]
+	size := isoFile.Size()
+	game := NewGame(name, image, size, workingDir)
+	isoAsReader, err := os.Open(isoPath)
+	if err != nil {
+		return err
+	}
+	if err = writeGameParts(isoAsReader, game, size, progress); err != nil {
+		return err
+	}
+	return Add(game)
+}
+
+func writeGameParts(data io.Reader, game Game, size int64, progress chan int) error {
+	totalRead, percent := 0, 0
+	chunk := make([]byte, DEFAULT_CHUNK_SIZE)
+	for _, part := range game.Parts.Files {
+		partFile, err := os.Create(part)
+		if err != nil {
+			return err
+		}
+		toRead := MAX_GAME_PART_SIZE
+		for toRead > 0 {
+			n, err := data.Read(chunk)
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return err
+			}
+			if _, err = partFile.Write(chunk[:n]); err != nil {
+				return err
+			}
+
+			toRead -= n
+			totalRead += n
+			partFile.Sync()
+
+			newPercent := int(math.Floor(float64(totalRead) / float64(size) * 100.0))
+			if newPercent > percent {
+				percent = newPercent
+				progress <- percent
+			}
+		}
+		if err = partFile.Close(); err != nil {
+			return err
+		}
+
+	}
+	return nil
 }
 
 func Rename(index int, newName string) error {

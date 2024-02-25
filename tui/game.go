@@ -61,10 +61,12 @@ func ActionDelete(index int) tview.Primitive {
 	modal.SetDoneFunc(func(buttonID int, _ string) {
 		if buttonID != 1 {
 			pages.AddAndSwitchToPage("Game", GameActions(index), true)
+			return
 		}
 		err := manager.Delete(index)
 		if err != nil {
 			ErrorDialog(fmt.Sprintf("Failed to remove files or game from config:\n%v", err))
+			return
 		}
 		Menu()
 	})

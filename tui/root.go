@@ -36,8 +36,9 @@ func Menu() {
 		}
 		list.AddItem(game.GetName(), description, rune(i+'a'), gamePage)
 	}
-	list.AddItem("Get covers", "Download missing game covers", '"', DownloadCovers)
-	list.AddItem("Quit", "Exit program", '!', app.Stop)
+	list.AddItem("Install", "Install new game", ',', InstallForm)
+	list.AddItem("Get covers", "Download missing game covers", '.', DownloadCovers)
+	list.AddItem("Quit", "Exit program", ';', app.Stop)
 	pages.AddAndSwitchToPage("Menu", list, true)
 }
 
@@ -88,4 +89,48 @@ Success: [green]%d[white]  Errors: [red]%d
 			len(toDownload), completed, errors,
 		),
 	)
+}
+
+func InstallForm() {
+	form := tview.NewForm()
+	form.SetBorder(true)
+	form.SetTitle("Install new game")
+
+	iso, name := "", ""
+	form.AddInputField("Iso file:", iso, 0, nil, func(t string) { iso = t })
+	form.AddInputField("Game name:", name, len(manager.GameConfig{}.Name), nil, func(t string) { name = t })
+	form.AddButton("Install", func() {
+		progress := make(chan int)
+		errChan := make(chan error)
+		textView := tview.NewTextView()
+		textView.SetBorder(true)
+		textView.SetBorderPadding(2, 2, 2, 2)
+		textView.SetTitle("Install progress")
+		textView.SetTextAlign(tview.AlignCenter)
+		textView.SetText("Initializing installation...")
+		textView.SetDynamicColors(true)
+		pages.AddAndSwitchToPage("InstallProgress", textView, true)
+		go (func() { errChan <- manager.Install(iso, name, progress) })()
+		for {
+			select {
+			case percent := <-progress:
+				if percent == 100 {
+					goto complete
+				}
+				textView.SetText(fmt.Sprintf("Installing '[cyan]%s[white]' is [blue]%d%%[white] done...", name, percent))
+				app.ForceDraw()
+			case err := <-errChan:
+				ErrorDialog(fmt.Sprintf("Failed to install '%s': %v", name, err))
+				return
+			}
+		}
+	complete:
+		modal := tview.NewModal()
+		modal.SetText(fmt.Sprintf("Installation of '%s' was done with success!", name))
+		modal.AddButtons([]string{"Done"})
+		modal.SetDoneFunc(func(_ int, _ string) { Menu() })
+		pages.AddAndSwitchToPage("InstallDone", modal, true)
+	})
+	form.AddButton("Cancel", func() { Menu() })
+	pages.AddAndSwitchToPage("InstallForm", form, true)
 }

@@ -2,9 +2,15 @@ package utils
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"image/jpeg"
 	"io"
+	"io/fs"
+	"os"
+	"strings"
 
+	"github.com/hooklift/iso9660"
 	"github.com/nfnt/resize"
 )
 
@@ -29,4 +35,30 @@ func ResizeJPG(data io.Reader, width, height uint) ([]byte, error) {
 		return result, err
 	}
 	return buffer.Bytes(), nil
+}
+
+func ReadFileFromISO(iso, filename string) ([]byte, error) {
+	isoFile, err := os.Open(iso)
+	if err != nil {
+		fmt.Println("Não foi possivel abrir aiso")
+		return []byte{}, err
+	}
+	isoReader, err := iso9660.NewReader(isoFile)
+	if err != nil {
+		return []byte{}, err
+	}
+	var wantedFile fs.FileInfo
+	for {
+		f, err := isoReader.Next()
+		if err == io.EOF {
+			return []byte{}, errors.New("file not found")
+		} else if err != nil {
+			return []byte{}, err
+		} else if strings.ToLower(f.Name()) == strings.ToLower(filename) {
+			wantedFile = f
+			break
+		}
+	}
+	fReader := wantedFile.Sys().(io.Reader)
+	return io.ReadAll(fReader)
 }

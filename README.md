@@ -3,17 +3,14 @@
 ![Sample gif](https://imgur.com/a/SmdsL5s)
 
 A simple [Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader) game manager create for use on command line,
-more specififc my server that's where I keep my ROMs
+more specific my server that's where I keep my ROMs
 
 This can:
 
   - List games;
   - Rename;
-  - Delete from disk and;
-  - Insert game covers.
-
-This will can:
-
+  - Delete from disk;
+  - Insert game covers and;
   - Install new games;
 
 # Build and run
