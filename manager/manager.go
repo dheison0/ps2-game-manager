@@ -11,19 +11,19 @@ import (
 	"strings"
 )
 
-const (
-	SYSTEM_CONFIG_NAME = "/SYSTEM.CNF"
-)
+const SYSTEM_CONFIG_NAME = "/SYSTEM.CNF"
 
-var configFile string
-var workingDir string
+var (
+	configFile string
+	dataDir    string
+)
 
 var games []Game
 
 func InitManager(dir string) error {
 	configFile = path.Join(dir, "ul.cfg")
-	workingDir = dir
-	if err := os.MkdirAll(path.Join(workingDir, "ART"), os.ModePerm); err != nil {
+	dataDir = dir
+	if err := os.MkdirAll(path.Join(dataDir, "ART"), os.ModePerm); err != nil {
 		return err
 	}
 	_, err := os.Stat(configFile)
@@ -46,7 +46,7 @@ func ReadConfigFile() error {
 	}
 	for i := 0; i < len(data)/GameConfigSize; i++ {
 		offset := i * GameConfigSize
-		game := NewGameFromBytes(data[offset:offset+GameConfigSize], workingDir)
+		game := NewGameFromBytes(data[offset:offset+GameConfigSize], dataDir)
 		if len(game.Parts.Files) < int(game.Config.Parts) {
 			fmt.Printf("Game '%s' is missing files\n", game.GetName())
 		}
@@ -76,7 +76,7 @@ func Install(isoPath, name string, progress chan int) error {
 	isoFile, _ := os.Stat(isoPath)
 	image := strings.Split(strings.Split(string(systemCnf), ":\\")[1], ";")[0]
 	size := isoFile.Size()
-	game := NewGame(name, image, size, workingDir)
+	game := NewGame(name, image, size, dataDir)
 	isoAsReader, err := os.Open(isoPath)
 	if err != nil {
 		return err

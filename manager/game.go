@@ -35,7 +35,7 @@ func NewGame(name, image string, size int64, dataDir string) Game {
 	copy(game.Config.Image[:], []byte("ul."+image))
 	game.Config.Parts = int8(math.Ceil(float64(size) / float64(MAX_GAME_PART_SIZE)))
 	game.Config.RegenerateHash()
-	game.Parts.GenerateFileNames(game.Config.NameHash, image, dataDir, game.Config.Parts)
+	game.Parts.GenerateFileNames(game.Config.NameHash, game.GetImage(), dataDir, game.Config.Parts)
 	game.CoverPath = path.Join(dataDir, "ART", image+"_COV.jpg")
 	if size <= MAX_CD_SIZE {
 		game.Config.Media = MediaCD
@@ -52,7 +52,7 @@ func NewGameFromBytes(data []byte, dataDir string) Game {
 	if config.Media == MediaDVD {
 		size *= 2
 	}
-	return NewGame(utils.BytesToString(config.Name[:]), utils.BytesToString(config.Image[:]), size, dataDir)
+	return NewGame(utils.BytesToString(config.Name[:]), utils.BytesToString(config.Image[3:]), size, dataDir)
 }
 
 func (g *Game) IsCoverInstalled() bool {
@@ -106,7 +106,7 @@ func (g *Game) GenerateFileNames(root string) {
 	for i := int8(0); i < g.Config.Parts; i++ {
 		g.Parts.Files = append(
 			g.Parts.Files,
-			path.Join(root, fmt.Sprintf("ul.%s.%s.%2d", g.Config.NameHash, utils.BytesToString(g.Config.Image[:]), i)),
+			path.Join(root, fmt.Sprintf("ul.%s.%s.%2d", g.Config.NameHash, g.GetImage(), i)),
 		)
 	}
 }

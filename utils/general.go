@@ -40,7 +40,7 @@ func ResizeJPG(data io.Reader, width, height uint) ([]byte, error) {
 func ReadFileFromISO(iso, filename string) ([]byte, error) {
 	isoFile, err := os.Open(iso)
 	if err != nil {
-		fmt.Println("Não foi possivel abrir aiso")
+		fmt.Println("Não foi possivel abrir a iso")
 		return []byte{}, err
 	}
 	isoReader, err := iso9660.NewReader(isoFile)
