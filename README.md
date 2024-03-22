@@ -2,25 +2,30 @@
 
 ![Sample gif](https://imgur.com/a/SmdsL5s)
 
-A simple [Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader) game manager create for use on command line,
+A simple [Open PS2 Loader][OPL] game manager create for use on command line,
 more specific my server that's where I keep my ROMs
 
-This can:
+This program can:
 
-  - List games;
-  - Rename;
-  - Delete from disk;
-  - Insert game covers and;
-  - Install new games;
+  - View/Rename/Delete installed games;
+  - Install new games from ISO;
+  - Download and insert game covers(thanks to [ps2-covers]).
 
 # Build and run
 
-Install [Go](https://go.dev) 1.21 or newer and run:
+Install [Go] 1.21 or newer then run:
+
 ```bash
-go build .
+git clone --depth=1 https://github.com/dheison0/ps2-game-manager
+cd ps2-game-manager
+go build
 ```
 
-To run just set `ul.cfg` file:
+To run just set the game files path:
 ```bash
-./ps2manager path/to/ul.cfg
+./ps2manager games/path
 ```
+
+[OPL]: <https://github.com/ps2homebrew/Open-PS2-Loader>
+[ps2-covers]: <https://github.com/xlenore/ps2-covers>
+[Go]: <https://go.dev>
