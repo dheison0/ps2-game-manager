@@ -100,7 +100,7 @@ func InstallForm() {
 	form.AddInputField("Iso file:", iso, 0, nil, func(t string) { iso = t })
 	form.AddInputField("Game name:", name, manager.MaxNameSize, nil, func(t string) { name = t })
 	form.AddButton("Install", func() {
-		progress := make(chan int)
+		progress := make(chan int, 100)
 		errChan := make(chan error)
 		textView := tview.NewTextView()
 		textView.SetBorder(true)
@@ -114,12 +114,12 @@ func InstallForm() {
 		for {
 			select {
 			case percent := <-progress:
-				if percent == 100 {
-					goto complete
-				}
 				textView.SetText(fmt.Sprintf("Installing '[cyan]%s[white]' is [blue]%d%%[white] done...", name, percent))
 				app.ForceDraw()
 			case err := <-errChan:
+				if err == nil {
+					goto complete
+				}
 				ErrorDialog(fmt.Sprintf("Failed to install '%s': %v", name, err))
 				return
 			}
