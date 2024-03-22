@@ -13,7 +13,7 @@ This program can:
 
 # Build and run
 
-Install [Go] 1.21 or newer then run:
+Install [Go] 1.22 or newer then run:
 
 ```bash
 git clone --depth=1 https://github.com/dheison0/ps2-game-manager

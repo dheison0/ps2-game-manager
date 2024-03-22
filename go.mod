@@ -1,6 +1,6 @@
 module ps2manager
 
-go 1.21.6
+go 1.22
 
 require (
 	github.com/gdamore/tcell/v2 v2.6.1-0.20231203215052-2917c3801e73
