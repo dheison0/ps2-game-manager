@@ -1,0 +1,29 @@
+name: Auto Deploy
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  nightly:
+    name: Deploy nightly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build
+        run: go build
+
+      - name: Linux artifacts
+        uses: WebFreak001/deploy-nightly@v3.1.0
+        with:
+          upload_url: https://uploads.github.com/repos/dheison0/ps2-game-manager/releases/147949803/assets{?name,label}
+          release_id: 147949803
+          asset_path: ./ps2manager
+          asset_name: ps2manager-linux-$$.bin
+          asset_content_type: application/binary
+          max_releases: 5
