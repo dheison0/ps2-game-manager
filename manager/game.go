@@ -141,7 +141,8 @@ func (g *GameConfig) DeleteFiles() error {
 			return err
 		}
 	}
-	return os.Remove(g.CoverPath)
+	os.Remove(g.CoverPath) // It must not exists, this's why I won't check errors
+	return nil
 }
 
 func (g *GameConfig) IsCoverInstalled() bool {
