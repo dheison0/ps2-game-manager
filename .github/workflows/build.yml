@@ -11,16 +11,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: "1.22"
+
       - name: Building PS2Manager...
         run: go build -o ps2manager-linux-amd64
-
-      - name: Create a body messa...
-        id: body
-        run: echo "BODY=$(git reflog show | head -10)" >> $GITHUB_OUTPUT
 
       - name: Upload binary
         uses: svenstaro/upload-release-action@v2
@@ -29,4 +27,4 @@ jobs:
           tag: nightly
           asset_name: ps2manager-linux-amd64
           overwrite: true
-          body: ${{ steps.body.outputs.BODY }}
+          body: ${{ github.event.head_commit.message }}
