@@ -2,7 +2,6 @@ package manager
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"os"
@@ -11,14 +10,13 @@ import (
 	"strings"
 )
 
-const SYSTEM_CONFIG_NAME = "/SYSTEM.CNF"
-
-var (
-	configFile string
-	dataDir    string
+const (
+	SystemConfigIsoPath = "/SYSTEM.CNF"
+	DefaultChunkSize    = 262144 // 256KiB
 )
 
-var games []Game
+var dataDir, configFile string
+var games []*GameConfig
 
 func InitManager(dir string) error {
 	configFile = path.Join(dir, "ul.cfg")
@@ -26,15 +24,12 @@ func InitManager(dir string) error {
 	if err := os.MkdirAll(path.Join(dataDir, "ART"), os.ModePerm); err != nil {
 		return err
 	}
-	_, err := os.Stat(configFile)
-	if os.IsNotExist(err) {
+	if !utils.FileExists(configFile) {
 		file, err := os.Create(configFile)
 		if err != nil {
 			return err
 		}
 		file.Close()
-	} else if err != nil {
-		return err
 	}
 	return ReadConfigFile()
 }
@@ -46,56 +41,50 @@ func ReadConfigFile() error {
 	}
 	for i := 0; i < len(data)/GameConfigSize; i++ {
 		offset := i * GameConfigSize
-		game := NewGameFromBytes(data[offset:offset+GameConfigSize], dataDir)
-		if len(game.Parts.Files) < int(game.Config.Parts) {
-			fmt.Printf("Game '%s' is missing files\n", game.GetName())
-		}
+		game := NewGameConfigFromBytes(data[offset:offset+GameConfigSize], dataDir)
 		games = append(games, game)
 	}
 	return nil
 }
 
-func GetAll() []Game {
+func GetAll() []*GameConfig {
 	return games
 }
 
-func Get(index int) Game {
+func Get(index int) *GameConfig {
 	return games[index]
 }
 
-func Add(game Game) error {
+func Add(game *GameConfig) error {
 	games = append(games, game)
-	return WriteChanges()
+	return WriteConfigChanges()
 }
 
 func Install(isoPath, name string, progress chan int) error {
-	systemCnf, err := utils.ReadFileFromISO(isoPath, SYSTEM_CONFIG_NAME)
+	systemCnf, err := utils.ReadFileFromISO(isoPath, SystemConfigIsoPath)
 	if err != nil {
 		return err
 	}
-	isoFile, _ := os.Stat(isoPath)
+	isoReader, _ := os.Open(isoPath)
+	isoStat, _ := isoReader.Stat()
 	image := strings.Split(strings.Split(string(systemCnf), ":\\")[1], ";")[0]
-	size := isoFile.Size()
-	game := NewGame(name, image, size, dataDir)
-	isoAsReader, err := os.Open(isoPath)
-	if err != nil {
-		return err
-	}
-	if err = writeGameParts(isoAsReader, game, size, progress); err != nil {
+	size := isoStat.Size()
+	game := NewGameConfig(name, image, dataDir, size)
+	if err = writeGameParts(isoReader, game, size, progress); err != nil {
 		return err
 	}
 	return Add(game)
 }
 
-func writeGameParts(data io.Reader, game Game, size int64, progress chan int) error {
+func writeGameParts(data io.Reader, game *GameConfig, size int64, progress chan int) error {
 	totalRead, percent := 0, 0
-	chunk := make([]byte, DEFAULT_CHUNK_SIZE)
-	for _, part := range game.Parts.Files {
-		partFile, err := os.Create(part)
+	chunk := make([]byte, DefaultChunkSize)
+	for _, partName := range game.Files {
+		partFile, err := os.Create(partName)
 		if err != nil {
 			return err
 		}
-		toRead := MAX_GAME_PART_SIZE
+		toRead := MaxPartSize
 		for toRead > 0 {
 			n, err := data.Read(chunk)
 			if err == io.EOF {
@@ -134,22 +123,22 @@ func Rename(index int, newName string) error {
 	if err := games[index].Rename(newName); err != nil {
 		return err
 	}
-	return WriteChanges()
+	return WriteConfigChanges()
 }
 
 func Delete(index int) error {
 	game := games[index]
-	if err := game.Parts.RemoveAll(); err != nil {
+	if err := game.DeleteFiles(); err != nil {
 		return err
 	}
 	games = append(games[:index], games[index+1:]...)
-	return WriteChanges()
+	return WriteConfigChanges()
 }
 
-func WriteChanges() error {
+func WriteConfigChanges() error {
 	data := make([]byte, len(games)*GameConfigSize)
 	for i, game := range games {
-		copy(data[i*GameConfigSize:], game.Config.AsBytes())
+		copy(data[i*GameConfigSize:], game.AsBytes())
 	}
 	return os.WriteFile(configFile, data, 0644)
 }

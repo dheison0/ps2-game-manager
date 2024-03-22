@@ -54,7 +54,7 @@ func DownloadCovers() {
 	pages.AddAndSwitchToPage("DownloadProgress", textView, true)
 
 	games := manager.GetAll()
-	var toDownload []manager.Game
+	var toDownload []*manager.GameConfig
 	for _, g := range games {
 		if !g.IsCoverInstalled() {
 			toDownload = append(toDownload, g)
@@ -98,7 +98,7 @@ func InstallForm() {
 
 	iso, name := "", ""
 	form.AddInputField("Iso file:", iso, 0, nil, func(t string) { iso = t })
-	form.AddInputField("Game name:", name, len(manager.GameConfig{}.Name), nil, func(t string) { name = t })
+	form.AddInputField("Game name:", name, manager.MaxNameSize, nil, func(t string) { name = t })
 	form.AddButton("Install", func() {
 		progress := make(chan int)
 		errChan := make(chan error)

@@ -1,69 +1,167 @@
 package manager
 
 import (
-	"bytes"
 	"fmt"
-	"image"
 	"io"
 	"math"
 	"net/http"
 	"os"
 	"path"
 	"ps2manager/utils"
+	"ps2manager/utils/oplCRC32"
+	"slices"
 	"strings"
 )
 
-const (
-	COVER_UNFORMATTED_URL = "https://raw.githubusercontent.com/xlenore/ps2-covers/main/covers/default/%s.jpg"
-	COVER_MAX_WIDTH       = 360
-	COVER_MAX_HEIGHT      = 640
-
-	MAX_CD_SIZE        = 700000000  // 700MB    | 667.57MiB
-	MAX_GAME_PART_SIZE = 1073741824 // 1.07GB   | 1GiB
-	DEFAULT_CHUNK_SIZE = 524288     // 524.28KB | 512KiB
+const ( // Config data
+	MediaCD     = 0x12
+	MediaDVD    = 0x14
+	PaddingByte = 0x08
 )
 
-type Game struct {
-	Config    GameConfig
-	Parts     GameFiles
+const ( // Sizes
+	MaxCDSize         = 700000000  // 667.57MiB is the maximum physical CD capacity
+	MaxPartSize       = 1073741824 // 1GiB
+	MaxNameSize       = 32
+	MaxImageSize      = 15
+	PaddingConfigSize = 15
+	ConfigSize        = 64 // Every game config takes 64 bytes on ul.cfg file
+)
+
+const ( // Covers
+	// Covers are being extracted from https://github.com/xlenore/ps2-covers repository
+	CoverDownloadUnformattedUrl = "https://raw.githubusercontent.com/xlenore/ps2-covers/main/covers/default/%s.jpg"
+	CoverMaxWidth               = 360
+	CoverMaxHeight              = 640
+)
+
+type GameConfig struct {
+	// Basic
+	Name    [MaxNameSize]byte
+	Image   [MaxImageSize]byte
+	Parts   int8
+	Media   int8
+	Padding [PaddingConfigSize]byte
+
+	// Extra
+	NameHash  string
+	Files     []string
 	CoverPath string
+	GamePath  string
 }
 
-func NewGame(name, image string, size int64, dataDir string) Game {
-	game := Game{}
-	copy(game.Config.Name[:], []byte(name))
-	copy(game.Config.Image[:], []byte("ul."+image))
-	game.Config.Parts = int8(math.Ceil(float64(size) / float64(MAX_GAME_PART_SIZE)))
-	game.Config.RegenerateHash()
-	game.Parts.GenerateFileNames(game.Config.NameHash, game.GetImage(), dataDir, game.Config.Parts)
-	game.CoverPath = path.Join(dataDir, "ART", image+"_COV.jpg")
-	if size <= MAX_CD_SIZE {
-		game.Config.Media = MediaCD
+const GameConfigSize = 64
+
+func NewGameConfig(name, image, path string, size int64) *GameConfig {
+	g := &GameConfig{GamePath: path}
+
+	copy(g.Name[:], []byte(name))
+	copy(g.Image[:], []byte("ul."+image))
+	if size <= MaxCDSize {
+		g.Media = MediaCD
+		g.Parts = 1
 	} else {
-		game.Config.Media = MediaDVD
+		g.Media = MediaDVD
+		g.Parts = int8(math.Floor(float64(size) / float64(MaxPartSize)))
 	}
-	return game
+	g.setup()
+
+	return g
 }
 
-func NewGameFromBytes(data []byte, dataDir string) Game {
-	config := GameConfig{}
-	config.FromBytes(data)
-	size := int64(MAX_CD_SIZE)
-	if config.Media == MediaDVD {
-		size *= 2
+func NewGameConfigFromBytes(data []byte, path string) *GameConfig {
+	g := &GameConfig{GamePath: path}
+
+	offset := 0
+	copy(g.Name[:], data[offset:])
+	offset += len(g.Name)
+	copy(g.Image[:], data[offset:])
+	offset += len(g.Image)
+	g.Parts = int8(data[offset])
+	offset++
+	g.Media = int8(data[offset])
+	offset++
+	copy(g.Padding[:], data[offset:])
+
+	g.setup()
+	return g
+}
+
+func (g *GameConfig) setup() {
+	g.updateHash()
+	g.generateFileNames()
+	g.Padding[4] = PaddingByte
+}
+
+func (g *GameConfig) updateHash() {
+	g.NameHash = oplCRC32.Crc32(utils.BytesToString(g.Name[:]))
+}
+
+func (g *GameConfig) generateFileNames() {
+	image := g.GetImage()
+	for partNumber := int8(0); partNumber < g.Parts; partNumber++ {
+		partName := fmt.Sprintf("ul.%s.%s.%02d", g.NameHash, image, partNumber)
+		g.Files = append(g.Files, path.Join(g.GamePath, partName))
 	}
-	return NewGame(utils.BytesToString(config.Name[:]), utils.BytesToString(config.Image[3:]), size, dataDir)
+	g.CoverPath = path.Join(g.GamePath, "ART", image+"_COV.jpg")
 }
 
-func (g *Game) IsCoverInstalled() bool {
-	_, err := os.Stat(g.CoverPath)
-	return err == nil
+func (g *GameConfig) AsBytes() []byte {
+	return slices.Concat(
+		g.Name[:],
+		g.Image[:],
+		[]byte{byte(g.Parts), byte(g.Media)},
+		g.Padding[:],
+	)
 }
 
-func (g *Game) DownloadCover() error {
+func (g *GameConfig) Rename(name string) error {
+	oldHash := g.NameHash
+
+	// This's necessary because if we just copy the name it won't delete the end when the new name is smaller than old one
+	newName := make([]byte, MaxNameSize)
+	copy(newName, []byte(name))
+	copy(g.Name[:], newName)
+
+	g.updateHash()
+	newHash := g.NameHash
+	for index, fileName := range g.Files {
+		newFileName := strings.Replace(fileName, oldHash, newHash, 1)
+		if err := os.Rename(fileName, newFileName); err != nil {
+			return err
+		}
+		g.Files[index] = newFileName
+	}
+	return nil
+}
+
+func (g *GameConfig) DeleteFiles() error {
+	for _, file := range g.Files {
+		if err := os.Remove(file); err != nil {
+			return err
+		}
+	}
+	return os.Remove(g.CoverPath)
+}
+
+func (g *GameConfig) IsCoverInstalled() bool {
+	return utils.FileExists(g.CoverPath)
+}
+
+func (g *GameConfig) GetName() string {
+	return utils.BytesToString(g.Name[:])
+}
+
+func (g *GameConfig) GetImage() string {
+	return utils.BytesToString(g.Image[3:])
+}
+
+func (g *GameConfig) DownloadCover() error {
+	// Make image name looks like on the website
 	gameImage := strings.Replace(g.GetImage(), "_", "-", 1)
 	gameImage = strings.Replace(gameImage, ".", "", 1)
-	response, err := http.Get(fmt.Sprintf(COVER_UNFORMATTED_URL, gameImage))
+
+	response, err := http.Get(fmt.Sprintf(CoverDownloadUnformattedUrl, gameImage))
 	if err != nil {
 		return ErrCoverRequestFailed
 	}
@@ -71,42 +169,13 @@ func (g *Game) DownloadCover() error {
 	if response.StatusCode != 200 {
 		return ErrCoverNotFound
 	}
-	coverData, _ := io.ReadAll(response.Body)
-	cover := coverData
-	coverOriginal, _, err := image.DecodeConfig(bytes.NewReader(coverData))
+	coverData, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
-	if coverOriginal.Width > COVER_MAX_WIDTH || coverOriginal.Height > COVER_MAX_HEIGHT {
-		cover, err = utils.ResizeJPG(bytes.NewReader(coverData), COVER_MAX_WIDTH, COVER_MAX_HEIGHT)
-		if err != nil {
-			return err
-		}
+	cover, err := utils.ResizeJPGToMax(coverData, CoverMaxWidth, CoverMaxHeight)
+	if err != nil {
+		return err
 	}
 	return os.WriteFile(g.CoverPath, cover, 0644)
-}
-
-func (g *Game) Rename(name string) error {
-	nameBytes := [len(g.Config.Name)]byte{}
-	copy(nameBytes[:], []byte(name))
-	g.Config.Name = nameBytes
-	g.Config.RegenerateHash()
-	return g.Parts.UpdateHash(g.Config.NameHash)
-}
-
-func (g *Game) GetName() string {
-	return utils.BytesToString(g.Config.Name[:])
-}
-
-func (g *Game) GetImage() string {
-	return utils.BytesToString(g.Config.Image[3:])
-}
-
-func (g *Game) GenerateFileNames(root string) {
-	for i := int8(0); i < g.Config.Parts; i++ {
-		g.Parts.Files = append(
-			g.Parts.Files,
-			path.Join(root, fmt.Sprintf("ul.%s.%s.%2d", g.Config.NameHash, g.GetImage(), i)),
-		)
-	}
 }

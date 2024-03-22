@@ -34,9 +34,9 @@ func ActionRename(index int) tview.Primitive {
 
 	form := tview.NewForm()
 	form.AddInputField(
-		"New name:", newName, len(game.Config.Name),
+		"New name:", newName, manager.MaxNameSize,
 		func(t string, _ rune) bool {
-			return len(t) <= len(game.Config.Name)
+			return len(t) <= manager.MaxNameSize
 		},
 		func(t string) { newName = t },
 	)
