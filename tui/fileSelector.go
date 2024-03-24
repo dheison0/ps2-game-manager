@@ -31,13 +31,18 @@ func UpdateFileList() {
 	}
 	var files, folders []os.DirEntry
 	chdir := func() {
-		fi := fileSelector.GetCurrentItem() - 1 // -1 here is necessary because it has ".." as the first folder
-		selected := folders[fi].Name()
-		fileSelectorActualPath = path.Join(fileSelectorActualPath, selected)
+		fi := fileSelector.GetCurrentItem()
+		if fi == 0 {
+			fileSelectorActualPath = path.Join(fileSelectorActualPath, "..")
+		} else {
+			selected := folders[fi-1].Name() // -1 because first is up dir
+			fileSelectorActualPath = path.Join(fileSelectorActualPath, selected)
+		}
 		UpdateFileList()
 	}
 	done := func() {
-		fi := fileSelector.GetCurrentItem() - len(folders) - 1 // -1 here is necessary because it has ".." as the first folder
+		// file index is current - length of folders - 1 (of up dir)
+		fi := fileSelector.GetCurrentItem() - len(folders) - 1
 		selected := files[fi].Name()
 		callback(path.Join(fileSelectorActualPath, selected))
 	}
@@ -52,10 +57,7 @@ func UpdateFileList() {
 		}
 	}
 	fileSelector.Clear()
-	fileSelector.AddItem("../", "", 0, func() {
-		fileSelectorActualPath = path.Join(fileSelectorActualPath, "..")
-		UpdateFileList()
-	})
+	fileSelector.AddItem("../", "", 0, chdir)
 	for _, d := range folders {
 		fileSelector.AddItem(d.Name()+"/", "", 0, chdir)
 	}
