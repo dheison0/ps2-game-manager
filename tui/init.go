@@ -8,12 +8,13 @@ var (
 	menu            *tview.List
 	fileSelector    *tview.List
 	installForm     *tview.Form
-	installProgress *tview.Modal
+	installProgress *tview.TextView
 )
 
 func Init() *tview.Application {
 	SetupMenu()
 	SetupInstall()
+	SetupInstallProgress()
 	SetupFileSelector()
 
 	pages = tview.NewPages()
@@ -24,5 +25,6 @@ func Init() *tview.Application {
 
 	app = tview.NewApplication()
 	app.SetRoot(pages, true)
+	app.EnableMouse(true)
 	return app
 }
