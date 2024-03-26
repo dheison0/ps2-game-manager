@@ -13,6 +13,11 @@ import (
 	"github.com/hooklift/iso9660"
 )
 
+var (
+	ErrUnableToOpen = errors.New("unable to open file")
+	ErrNotFound     = errors.New("file not found")
+)
+
 func BytesToString(data []byte) string {
 	n := bytes.IndexByte(data, 0)
 	if n < 0 {
@@ -25,7 +30,7 @@ func ReadFileFromISO(iso, filename string) ([]byte, error) {
 	empty := []byte{}
 	isoFile, err := os.Open(iso)
 	if err != nil {
-		return empty, errors.New("unable to open file")
+		return empty, ErrUnableToOpen
 	}
 	isoReader, err := iso9660.NewReader(isoFile)
 	if err != nil {
@@ -35,7 +40,7 @@ func ReadFileFromISO(iso, filename string) ([]byte, error) {
 	for {
 		f, err := isoReader.Next()
 		if err == io.EOF {
-			return empty, errors.New("file not found")
+			return empty, ErrNotFound
 		} else if err != nil {
 			return empty, err
 		} else if strings.EqualFold(f.Name(), filename) {

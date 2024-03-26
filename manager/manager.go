@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"errors"
 	"io"
 	"math"
 	"os"
@@ -70,6 +69,13 @@ func Install(isoPath, name string, progress chan int) error {
 	image := strings.Split(strings.Split(string(systemCnf), ":\\")[1], ";")[0]
 	size := isoStat.Size()
 	game := NewGameConfig(name, image, dataDir, size)
+	for _, g := range games {
+		if g.Image == game.Image {
+			return ErrAlreadyInstalled
+		} else if g.Name == game.Name {
+			return ErrNameAlreadyExists
+		}
+	}
 	if err = writeGameParts(isoReader, game, size, progress); err != nil {
 		return err
 	}
@@ -117,7 +123,7 @@ func writeGameParts(data io.Reader, game *GameConfig, size int64, progress chan 
 func Rename(index int, newName string) error {
 	for _, g := range games {
 		if g.GetName() == newName {
-			return errors.New("a game with the same name already exists")
+			return ErrNameAlreadyExists
 		}
 	}
 	if err := games[index].Rename(newName); err != nil {
