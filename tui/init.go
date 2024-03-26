@@ -3,28 +3,30 @@ package tui
 import "github.com/rivo/tview"
 
 var (
-	app             *tview.Application
-	pages           *tview.Pages
-	menu            *tview.List
-	fileSelector    *tview.List
-	installForm     *tview.Form
-	installProgress *tview.TextView
+	// Base
+	app   *tview.Application
+	pages *tview.Pages
+
+	// Screens
+	menu            *MenuScreen
+	fileSelector    *FileSelectorScreen
+	errorDialog     *ErrorDialogScreen
+	install         *InstallScreen
+	installProgress *InstallProgressScreen
 )
 
 func Init() *tview.Application {
-	SetupMenu()
-	SetupInstall()
-	SetupInstallProgress()
-	SetupFileSelector()
-
-	pages = tview.NewPages()
-	pages.AddPage("menu", menu, true, true)
-	pages.AddPage("fileSelector", fileSelector, true, false)
-	pages.AddPage("installForm", installForm, true, false)
-	pages.AddPage("installProgress", installProgress, true, false)
-
 	app = tview.NewApplication()
+	pages = tview.NewPages()
+	menu = NewMenuScreen()
+	fileSelector = NewFileSelectorScreen()
+	errorDialog = NewErrorDialogScreen()
+	install = NewInstallScreen()
+	installProgress = NewInstallProgressScreen()
+
 	app.SetRoot(pages, true)
 	app.EnableMouse(true)
+
+	menu.Show()
 	return app
 }

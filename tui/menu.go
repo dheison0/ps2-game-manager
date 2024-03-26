@@ -6,33 +6,50 @@ import (
 	"github.com/rivo/tview"
 )
 
-func SetupMenu() {
-	menu = tview.NewList()
-	menu.SetBorder(true)
-	menu.SetBorderPadding(1, 1, 1, 1)
-	menu.SetTitle(" PS2 Game Manager ")
-	menu.SetTitleAlign(tview.AlignCenter)
-	menu.ShowSecondaryText(false)
+type MenuScreen struct {
+	root *tview.List
+}
 
+func NewMenuScreen() *MenuScreen {
+	screen := &MenuScreen{}
+	screen.root = tview.NewList()
+	screen.root.
+		ShowSecondaryText(false).
+		SetBorder(true).
+		SetBorderPadding(1, 1, 1, 1).
+		SetTitle(" PS2 Game Manager ").
+		SetTitleAlign(tview.AlignCenter)
+	screen.UpdateItemList()
+	pages.AddPage("menu", screen.root, true, false)
+	return screen
+}
+
+func (m *MenuScreen) Show() {
+	pages.SwitchToPage("menu")
+}
+
+func (m *MenuScreen) RemoveItem(index int) {
+	m.root.RemoveItem(index)
+}
+
+func (m *MenuScreen) AddItem(game *manager.GameConfig) {
+	m.root.AddItem(game.GetName(), "", 0, nil)
+}
+
+func (m *MenuScreen) UpdateItemList() {
 	games := manager.GetAll()
-	menu.Clear()
+	m.root.Clear()
 	for _, g := range games {
-		AddMenuItem(g)
+		m.AddItem(g)
 	}
-	menu.AddItem("Install", "", 'i', func() {
-		SelectFile(func(f string) {
-			UpdateInstallForm(f)
-			pages.SwitchToPage("installForm")
+	m.root.AddItem("Install", "", 'i', func() {
+		fileSelector.SetSelectFileFunc(func(f string) {
+			install.NewForm(f)
+			install.Show()
 		})
+		fileSelector.Show()
 	})
-	menu.AddItem("Get covers", "", 'c', func() {})
-	menu.AddItem("Quit", "", 'q', func() { app.Stop() })
-}
-
-func RemoveMenuItem(index int) {
-	menu.RemoveItem(index)
-}
-
-func AddMenuItem(game *manager.GameConfig) {
-	menu.AddItem(game.GetName(), "", 0, nil)
+	m.root.
+		AddItem("Get covers", "", 'c', func() {}).
+		AddItem("Quit", "", 'q', func() { app.Stop() })
 }

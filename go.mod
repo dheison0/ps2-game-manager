@@ -3,15 +3,15 @@ module ps2manager
 go 1.22
 
 require (
+	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/hooklift/iso9660 v1.0.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/rivo/tview v0.0.0-20240307173318-e804876934a1
+	github.com/rivo/tview v0.0.0-20240204151237-861aa94d61c8
 )
 
 require (
 	github.com/c4milo/gotoolkit v0.0.0-20190525173301-67483a18c17a // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gdamore/tcell/v2 v2.7.4 // indirect
 	github.com/hooklift/assert v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect

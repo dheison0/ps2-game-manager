@@ -15,6 +15,8 @@ github.com/mattn/go-runewidth v0.0.15 h1:UNAjwbU9l54TA3KzvqLGxwWjHmMgBUVhBiTjelZ
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
+github.com/rivo/tview v0.0.0-20240204151237-861aa94d61c8 h1:aW0ILZ0lkphO/2mUWocSfP1iebWtSFcxL8BiSNR+/8g=
+github.com/rivo/tview v0.0.0-20240204151237-861aa94d61c8/go.mod h1:sGSvhfWFNS7FpYxS8K+e22OTOI3UsB5rDs0nRtoZkpA=
 github.com/rivo/tview v0.0.0-20240307173318-e804876934a1 h1:bWLHTRekAy497pE7+nXSuzXwwFHI0XauRzz6roUvY+s=
 github.com/rivo/tview v0.0.0-20240307173318-e804876934a1/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=

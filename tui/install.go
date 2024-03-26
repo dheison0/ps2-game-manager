@@ -8,16 +8,28 @@ import (
 	"github.com/rivo/tview"
 )
 
-func SetupInstall() {
-	installForm = tview.NewForm()
-	installForm.SetBorder(true)
-	installForm.SetBorderPadding(1, 1, 1, 1)
-	installForm.SetTitle(" Install new game ")
+type InstallScreen struct {
+	root *tview.Form
 }
 
-func UpdateInstallForm(isoFile string) {
+func NewInstallScreen() *InstallScreen {
+	screen := &InstallScreen{}
+	screen.root = tview.NewForm()
+	screen.root.
+		SetBorder(true).
+		SetBorderPadding(1, 1, 1, 1).
+		SetTitle(" Install new game ")
+	pages.AddPage("install", screen.root, true, false)
+	return screen
+}
+
+func (i *InstallScreen) Show() {
+	pages.SwitchToPage("install")
+}
+
+func (i *InstallScreen) NewForm(isoFile string) {
 	gameName := ""
-	installForm.
+	i.root.
 		Clear(true).
 		AddTextView("ISO file:", isoFile, 0, 1, false, false).
 		AddInputField(
@@ -31,37 +43,55 @@ func UpdateInstallForm(isoFile string) {
 			progress := make(chan int, 100)
 			iError := make(chan error)
 			go func() { iError <- manager.Install(isoFile, gameName, progress) }()
-			pages.SwitchToPage("installProgress")
-			InstallUpdateProgress(gameName, progress, iError)
+			installProgress.Show()
+			installProgress.SetProgressSource(gameName, progress, iError)
 		}).
-		AddButton("Cancel", func() { pages.SwitchToPage("menu") })
+		AddButton("Cancel", menu.Show)
 }
 
-func SetupInstallProgress() {
-	installProgress = tview.NewTextView()
-	installProgress.SetTitle(" Installation progress ")
-	installProgress.SetBorder(true)
-	installProgress.SetBorderPadding(3, 3, 3, 3)
-	installProgress.SetTextAlign(tview.AlignCenter)
+type InstallProgressScreen struct {
+	root *tview.TextView
 }
 
-func InstallUpdateProgress(gameName string, progress chan int, err chan error) {
-	installProgress.SetText("Installation of " + gameName + " is starting...")
-	installProgress.SetDoneFunc(nil)
+func NewInstallProgressScreen() *InstallProgressScreen {
+	screen := &InstallProgressScreen{}
+	screen.root = tview.NewTextView()
+	screen.root.
+		SetTextAlign(tview.AlignCenter).
+		SetTitle(" Installation progress ").
+		SetBorder(true).
+		SetBorderPadding(3, 3, 3, 3)
+	pages.AddPage("installProgress", screen.root, true, false)
+	return screen
+}
+
+func (s *InstallProgressScreen) Show() {
+	pages.SwitchToPage("installProgress")
+}
+
+func (s *InstallProgressScreen) SetProgressSource(gameName string, progress chan int, err chan error) {
+	s.root.
+		SetText("Installation of " + gameName + " is starting...").
+		SetDoneFunc(nil)
 	for {
+		app.ForceDraw()
 		select {
-		case iError := <-err: // TODO: Check if there's an error on installation process
-			if iError == nil {
-				goto installationComplete
+		case iError := <-err:
+			if iError != nil {
+				errorDialog.Show()
+				errorDialog.SetMessage(fmt.Sprintf("Failed to install %s:\n%s", gameName, iError.Error()))
+				return
 			}
-			pages.SwitchToPage("menu")
-			return
+			goto installationComplete
 		case percent := <-progress:
-			installProgress.SetText(fmt.Sprintf("Installation of %s is %d%% complete...", gameName, percent))
-			app.ForceDraw()
+			s.root.SetText(fmt.Sprintf("Installation of %s is %d%% complete...", gameName, percent))
 		}
 	}
 installationComplete:
-	installProgress.SetText(gameName + " was installed with success!\nPress any key to go back...")
-	installProgress.SetDoneFunc(func(_ tcell.Key) { pages.SwitchToPage("menu") })
+	s.root.
+		SetText(gameName + " was installed with success!\nPress any key to go back...").
+		SetDoneFunc(func(_ tcell.Key) {
+			menu.UpdateItemList()
+			menu.Show()
+		})
 }
