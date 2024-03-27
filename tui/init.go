@@ -16,6 +16,7 @@ var (
 	covers          *CoverDownloadScreen
 	actionsMenu     *ActionsMenuScreen
 	actionsDelete   *ActionsDeleteScreen
+	actionsRename   *ActionsRenameScreen
 )
 
 func Init() *tview.Application {
@@ -29,6 +30,7 @@ func Init() *tview.Application {
 	covers = NewCoverDownloadScreen()
 	actionsMenu = NewActionsMenuScreen()
 	actionsDelete = NewActionsDeleteScreen()
+	actionsRename = NewActionsRenameScreen()
 
 	app.SetRoot(pages, true)
 	app.EnableMouse(true)

@@ -30,7 +30,10 @@ func NewActionsMenuScreen() *ActionsMenuScreen {
 	screen.buttons = tview.NewList()
 	screen.buttons.
 		ShowSecondaryText(false).
-		AddItem("Rename", "", 'r', func() {}).
+		AddItem("Rename", "", 'r', func() {
+			actionsRename.SetGameIndex(screen.gameIndex)
+			actionsRename.Show()
+		}).
 		AddItem("Delete", "", 'd', func() {
 			actionsDelete.SetGameIndex(screen.gameIndex)
 			actionsDelete.Show()
@@ -99,4 +102,55 @@ func (d *ActionsDeleteScreen) SetGameIndex(gameIndex int) {
 	game := manager.Get(d.gameIndex)
 	d.root.SetText("Do you really want to delete " + game.GetName() + "?")
 	d.root.SetFocus(0)
+}
+
+type ActionsRenameScreen struct {
+	root      *tview.Form
+	gameIndex int
+	newName   string
+}
+
+func NewActionsRenameScreen() *ActionsRenameScreen {
+	screen := &ActionsRenameScreen{}
+	screen.root = tview.NewForm()
+	screen.root.
+		SetBorder(true).
+		SetBorderPadding(1, 1, 2, 2).
+		SetTitle(" Game Rename ").
+		SetTitleAlign(tview.AlignCenter)
+	screen.root.AddButton("Rename", func() {
+		if manager.Get(screen.gameIndex).GetName() == screen.newName {
+			actionsMenu.Show()
+			return
+		} else if err := manager.Rename(screen.gameIndex, screen.newName); err != nil {
+			errorDialog.SetMessage("Failed to rename game: " + err.Error())
+			errorDialog.Show()
+			return
+		}
+		actionsMenu.UpdateGame(-1) // reload game info
+		menu.UpdateItemList()
+		actionsMenu.Show()
+	})
+	screen.root.AddButton("Cancel", actionsMenu.Show)
+	pages.AddPage("actionsRename", screen.root, true, false)
+	return screen
+}
+
+func (r *ActionsRenameScreen) Show() {
+	pages.SwitchToPage("actionsRename")
+}
+
+func (r *ActionsRenameScreen) SetGameIndex(gameIndex int) {
+	r.gameIndex = gameIndex
+	game := manager.Get(gameIndex)
+	r.root.Clear(false)
+	r.root.AddTextView("[white]Old name:", "[purple]"+game.GetName(), 0, 1, true, false)
+	r.newName = game.GetName()
+	r.root.AddInputField(
+		"New name:",
+		r.newName,
+		manager.MaxNameSize,
+		func(t string, _ rune) bool { return len(t) <= manager.MaxNameSize },
+		func(t string) { r.newName = t },
+	)
 }
