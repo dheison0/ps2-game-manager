@@ -19,6 +19,13 @@ func NewMenuScreen() *MenuScreen {
 		SetBorderPadding(1, 1, 1, 1).
 		SetTitle(" PS2 Game Manager ").
 		SetTitleAlign(tview.AlignCenter)
+	screen.root.SetSelectedFunc(func(index int, _, _ string, s rune) {
+		if s != 0 {
+			return
+		}
+		actionsMenu.UpdateGame(index)
+		actionsMenu.Show()
+	})
 	screen.UpdateItemList()
 	pages.AddPage("menu", screen.root, true, false)
 	return screen

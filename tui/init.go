@@ -14,6 +14,8 @@ var (
 	install         *InstallScreen
 	installProgress *InstallProgressScreen
 	covers          *CoverDownloadScreen
+	actionsMenu     *ActionsMenuScreen
+	actionsDelete   *ActionsDeleteScreen
 )
 
 func Init() *tview.Application {
@@ -25,6 +27,8 @@ func Init() *tview.Application {
 	install = NewInstallScreen()
 	installProgress = NewInstallProgressScreen()
 	covers = NewCoverDownloadScreen()
+	actionsMenu = NewActionsMenuScreen()
+	actionsDelete = NewActionsDeleteScreen()
 
 	app.SetRoot(pages, true)
 	app.EnableMouse(true)
