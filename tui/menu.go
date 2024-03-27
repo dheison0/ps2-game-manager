@@ -50,6 +50,9 @@ func (m *MenuScreen) UpdateItemList() {
 		fileSelector.Show()
 	})
 	m.root.
-		AddItem("Get covers", "", 'c', func() {}).
+		AddItem("Get covers", "", 'c', func() {
+			covers.Show()
+			covers.DownloadMissingCovers()
+		}).
 		AddItem("Quit", "", 'q', func() { app.Stop() })
 }

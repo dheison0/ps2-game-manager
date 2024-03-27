@@ -13,6 +13,7 @@ var (
 	errorDialog     *ErrorDialogScreen
 	install         *InstallScreen
 	installProgress *InstallProgressScreen
+	covers          *CoverDownloadScreen
 )
 
 func Init() *tview.Application {
@@ -23,6 +24,7 @@ func Init() *tview.Application {
 	errorDialog = NewErrorDialogScreen()
 	install = NewInstallScreen()
 	installProgress = NewInstallProgressScreen()
+	covers = NewCoverDownloadScreen()
 
 	app.SetRoot(pages, true)
 	app.EnableMouse(true)
