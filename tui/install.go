@@ -57,6 +57,7 @@ func NewInstallProgressScreen() *InstallProgressScreen {
 	screen := &InstallProgressScreen{}
 	screen.root = tview.NewTextView()
 	screen.root.
+		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
 		SetTitle(" Installation progress ").
 		SetBorder(true).
@@ -71,7 +72,7 @@ func (s *InstallProgressScreen) Show() {
 
 func (s *InstallProgressScreen) SetProgressSource(gameName string, progress chan int, err chan error) {
 	s.root.
-		SetText("Installation of " + gameName + " is starting...").
+		SetText("[white]Installation of [purple]" + gameName + "[white] is starting...").
 		SetDoneFunc(nil)
 	for {
 		app.ForceDraw()
@@ -79,17 +80,20 @@ func (s *InstallProgressScreen) SetProgressSource(gameName string, progress chan
 		case iError := <-err:
 			if iError != nil {
 				errorDialog.Show()
-				errorDialog.SetMessage(fmt.Sprintf("Failed to install %s:\n%s", gameName, iError.Error()))
+				errorDialog.SetMessage(fmt.Sprintf("[white]Failed to install [purple]%s:\n[red]%s", gameName, iError.Error()))
 				return
 			}
 			goto installationComplete
 		case percent := <-progress:
-			s.root.SetText(fmt.Sprintf("Installation of %s is %d%% complete...", gameName, percent))
+			s.root.SetText(fmt.Sprintf(
+				"[white]Installation of [purple]%s[white] is [blue]%d%%[white] complete...",
+				gameName, percent,
+			))
 		}
 	}
 installationComplete:
 	s.root.
-		SetText(gameName + " was installed with success!\nPress any key to go back...").
+		SetText("[purple]" + gameName + "[white] was installed with success!\n\n[green]Press any key to go back...").
 		SetDoneFunc(func(_ tcell.Key) {
 			menu.UpdateItemList()
 			menu.Show()
