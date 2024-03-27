@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrCoverNotFound      = errors.New("cover not found")
-	ErrNoPermission       = errors.New("we don't have access to write in this path")
 	ErrCoverRequestFailed = errors.New("failed to make a request to Github")
+	ErrNameAlreadyExists  = errors.New("a game with the same name already exists")
+	ErrAlreadyInstalled   = errors.New("this game is already installed(based on game image)")
 )
