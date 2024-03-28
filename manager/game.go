@@ -62,7 +62,7 @@ func NewGameConfig(name, image, path string, size int64) *GameConfig {
 		g.Parts = 1
 	} else {
 		g.Media = MediaDVD
-		g.Parts = int8(math.Floor(float64(size) / float64(MaxPartSize)))
+		g.Parts = int8(math.Ceil(float64(size) / float64(MaxPartSize)))
 	}
 	g.setup()
 
