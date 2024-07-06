@@ -1,9 +1,9 @@
 package tui
 
 import (
-	"io/fs"
 	"os"
 	"path"
+	"ps2manager/utils"
 	"slices"
 	"strings"
 
@@ -11,13 +11,16 @@ import (
 )
 
 type FileSelectorScreen struct {
+	screenId   string
 	root       *tview.List
-	callback   func(string)
 	actualPath string
+
+	// callback is a function called when a file is selected
+	callback func(string)
 }
 
 func NewFileSelectorScreen() *FileSelectorScreen {
-	screen := &FileSelectorScreen{}
+	screen := &FileSelectorScreen{screenId: "fileSelector"}
 	screen.root = tview.NewList()
 	root, err := os.Getwd()
 	if err == nil {
@@ -48,12 +51,13 @@ func NewFileSelectorScreen() *FileSelectorScreen {
 }
 
 func (f *FileSelectorScreen) Show() {
-	pages.SwitchToPage("fileSelector")
+	pages.SwitchToPage(f.screenId)
 }
 
 func (f *FileSelectorScreen) UpdateFileList() {
 	entries, err := os.ReadDir(f.actualPath)
 	if err != nil {
+		f.actualPath = path.Join(f.actualPath, "..")
 		return
 	}
 	var items []os.DirEntry
@@ -63,20 +67,13 @@ func (f *FileSelectorScreen) UpdateFileList() {
 		}
 		items = append(items, entry)
 	}
-	slices.SortFunc(items, func(a, b fs.DirEntry) int { // Put dirs at top and sort by name
-		// if 'a' is a dir and 'b' isn't then 'a' must be first or
-		// if 'a' is lower than 'b' it must be least
-		if a.IsDir() && !b.IsDir() || a.Name() < b.Name() {
-			return -1
-		}
-		return 1
-	})
+	slices.SortFunc(items, utils.SortDirItems)
 	f.root.
 		Clear().
 		AddItem("../", "", 0, nil)
-	for _, i := range items {
-		name := i.Name()
-		if i.IsDir() {
+	for _, item := range items {
+		name := item.Name()
+		if item.IsDir() {
 			name += "/"
 		}
 		f.root.AddItem(name, "", 0, nil)
@@ -84,6 +81,7 @@ func (f *FileSelectorScreen) UpdateFileList() {
 	f.root.AddItem("Quit!", "", 'q', nil)
 }
 
+// SetSelectFileFunc is a function that set a callback function called when a file is selected
 func (f *FileSelectorScreen) SetSelectFileFunc(selectedFunc func(string)) {
 	f.callback = selectedFunc
 }
