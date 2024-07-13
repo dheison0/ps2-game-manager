@@ -11,7 +11,7 @@ import (
 
 const (
 	SystemConfigIsoPath = "/SYSTEM.CNF"
-	DefaultChunkSize    = 262144 // 256KiB
+	DefaultChunkSize    = 1048576 // 1MiB
 )
 
 var dataDir, configFile string
@@ -82,9 +82,10 @@ func Install(isoPath, name string, progress chan int) error {
 	return Add(game)
 }
 
-func writeGameParts(data io.Reader, game *GameConfig, size int64, progress chan int) error {
+func writeGameParts(iso io.Reader, game *GameConfig, size int64, progress chan int) error {
 	totalRead, percent := 0, 0
 	chunk := make([]byte, DefaultChunkSize)
+	progress <- percent
 	for _, partName := range game.Files {
 		partFile, err := os.Create(partName)
 		if err != nil {
@@ -92,7 +93,7 @@ func writeGameParts(data io.Reader, game *GameConfig, size int64, progress chan 
 		}
 		toRead := MaxPartSize
 		for toRead > 0 {
-			n, err := data.Read(chunk)
+			n, err := iso.Read(chunk)
 			if err == io.EOF {
 				break
 			} else if err != nil {
@@ -104,10 +105,9 @@ func writeGameParts(data io.Reader, game *GameConfig, size int64, progress chan 
 
 			toRead -= n
 			totalRead += n
-			partFile.Sync()
-
 			newPercent := int(math.Floor(float64(totalRead) / float64(size) * 100.0))
 			if newPercent > percent {
+				partFile.Sync()
 				percent = newPercent
 				progress <- percent
 			}
@@ -147,4 +147,9 @@ func WriteConfigChanges() error {
 		copy(data[i*GameConfigSize:], game.AsBytes())
 	}
 	return os.WriteFile(configFile, data, 0644)
+}
+
+// CheckIfAcceptName only accepts ascii characters and till the maximum name size
+func CheckIfAcceptName(t string, r rune) bool {
+	return len(t) <= MaxNameSize && r <= 127
 }

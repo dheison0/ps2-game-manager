@@ -36,7 +36,7 @@ func (i *InstallScreen) NewForm(isoFile string) {
 			"Game Name:",
 			gameName,
 			manager.MaxNameSize,
-			func(t string, _ rune) bool { return len(t) <= manager.MaxNameSize },
+			manager.CheckIfAcceptName,
 			func(t string) { gameName = t },
 		).
 		AddButton("Install", func() {

@@ -150,7 +150,7 @@ func (r *ActionsRenameScreen) SetGameIndex(gameIndex int) {
 		"New name:",
 		r.newName,
 		manager.MaxNameSize,
-		func(t string, _ rune) bool { return len(t) <= manager.MaxNameSize },
+		manager.CheckIfAcceptName,
 		func(t string) { r.newName = t },
 	)
 }
