@@ -49,17 +49,17 @@ func (m *MenuScreen) UpdateItemList() {
 	for _, g := range games {
 		m.AddItem(g)
 	}
-	m.root.AddItem("Install", "", 'i', func() {
-		fileSelector.SetSelectFileFunc(func(f string) {
-			install.NewForm(f)
-			install.Show()
-		})
-		fileSelector.Show()
-	})
 	m.root.
+		AddItem("Install", "", 'i', func() {
+			fileSelector.SetSelectFileFunc(func(f string) {
+				install.NewForm(f)
+				install.Show()
+			})
+			fileSelector.Show()
+		}).
 		AddItem("Get covers", "", 'c', func() {
 			covers.Show()
 			covers.DownloadMissingCovers()
 		}).
-		AddItem("Quit", "", 'q', func() { app.Stop() })
+		AddItem("Quit", "", 'q', app.Stop)
 }

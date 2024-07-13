@@ -116,13 +116,12 @@ func (g *GameConfig) AsBytes() []byte {
 }
 
 func (g *GameConfig) Rename(name string) error {
-	oldHash := g.NameHash
-
 	// This's necessary because if we just copy the name it won't delete the end when the new name is smaller than old one
 	newName := make([]byte, MaxNameSize)
 	copy(newName, []byte(name))
 	copy(g.Name[:], newName)
 
+	oldHash := g.NameHash // save to rename files
 	g.updateHash()
 	newHash := g.NameHash
 	for index, fileName := range g.Files {
@@ -170,13 +169,13 @@ func (g *GameConfig) DownloadCover() error {
 	if response.StatusCode != 200 {
 		return ErrCoverNotFound
 	}
-	coverData, err := io.ReadAll(response.Body)
+	originalCover, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
-	cover, err := utils.ResizeJPGToMax(coverData, CoverMaxWidth, CoverMaxHeight)
+	resizedCover, err := utils.ResizeJPGToMax(originalCover, CoverMaxWidth, CoverMaxHeight)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(g.CoverPath, cover, 0644)
+	return os.WriteFile(g.CoverPath, resizedCover, 0644)
 }
