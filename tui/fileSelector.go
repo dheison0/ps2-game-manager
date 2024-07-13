@@ -75,6 +75,8 @@ func (f *FileSelectorScreen) UpdateFileList() {
 		name := item.Name()
 		if item.IsDir() {
 			name += "/"
+		} else if f.acceptFolders {
+			continue // skip files since it's selecting a folder
 		}
 		f.root.AddItem(name, "", 0, nil)
 	}
