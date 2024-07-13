@@ -16,7 +16,9 @@ type FileSelectorScreen struct {
 	actualPath string
 
 	// callback is a function called when a file is selected
-	callback func(string)
+	callback       func(string)
+	acceptFolders  bool
+	fileExtensions string
 }
 
 func NewFileSelectorScreen() *FileSelectorScreen {
@@ -41,6 +43,8 @@ func NewFileSelectorScreen() *FileSelectorScreen {
 			if strings.Contains(name, "/") {
 				screen.actualPath = selectedItemFullPath
 				screen.UpdateFileList()
+			} else if name == "." && screen.acceptFolders {
+				screen.callback(screen.actualPath)
 			} else {
 				screen.callback(selectedItemFullPath)
 			}
@@ -60,17 +64,13 @@ func (f *FileSelectorScreen) UpdateFileList() {
 		f.actualPath = path.Join(f.actualPath, "..")
 		return
 	}
-	var items []os.DirEntry
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue // skip hidden files
-		}
-		items = append(items, entry)
-	}
+	items := filterDirItems(entries, f.fileExtensions, false)
 	slices.SortFunc(items, utils.SortDirItems)
-	f.root.
-		Clear().
-		AddItem("../", "", 0, nil)
+	f.root.Clear()
+	if f.acceptFolders {
+		f.root.AddItem(".", "", 0, nil)
+	}
+	f.root.AddItem("../", "", 0, nil)
 	for _, item := range items {
 		name := item.Name()
 		if item.IsDir() {
@@ -81,7 +81,32 @@ func (f *FileSelectorScreen) UpdateFileList() {
 	f.root.AddItem("Quit!", "", 'q', nil)
 }
 
+func filterDirItems[T []os.DirEntry](entries T, fileExtensions string, showHiddenFiles bool) T {
+	var items []os.DirEntry
+	for _, entry := range entries {
+		name := entry.Name()
+		if (!showHiddenFiles && isHiddenFile(name)) || (!entry.IsDir() && fileExtensions != "" && !fileExtensionInList(fileExtensions, name)) {
+			continue // skip hidden files
+		}
+		items = append(items, entry)
+	}
+	return items
+}
+
+func isHiddenFile(name string) bool {
+	return strings.HasPrefix(name, ".")
+}
+
+func fileExtensionInList(fileExtensions, fileName string) bool {
+	nameParts := strings.Split(fileName, ".")
+	extension := strings.ToLower(nameParts[len(nameParts)-1])
+	return strings.Contains(fileExtensions, extension)
+}
+
 // SetSelectFileFunc is a function that set a callback function called when a file is selected
-func (f *FileSelectorScreen) SetSelectFileFunc(selectedFunc func(string)) {
+func (f *FileSelectorScreen) SetSelectFileConfig(selectedFunc func(string), acceptFolders bool, fileExtensions string) {
 	f.callback = selectedFunc
+	f.acceptFolders = acceptFolders
+	f.fileExtensions = strings.ToLower(fileExtensions)
+	f.UpdateFileList()
 }

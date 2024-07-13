@@ -51,10 +51,11 @@ func (m *MenuScreen) UpdateItemList() {
 	}
 	m.root.
 		AddItem("Install", "", 'i', func() {
-			fileSelector.SetSelectFileFunc(func(f string) {
+			onSelect := func(f string) {
 				install.NewForm(f)
 				install.Show()
-			})
+			}
+			fileSelector.SetSelectFileConfig(onSelect, false, "iso")
 			fileSelector.Show()
 		}).
 		AddItem("Get covers", "", 'c', func() {
