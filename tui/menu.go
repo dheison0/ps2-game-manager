@@ -16,7 +16,7 @@ func NewMenuScreen() *MenuScreen {
 	screen.root.
 		ShowSecondaryText(false).
 		SetBorder(true).
-		SetBorderPadding(1, 1, 1, 1).
+		SetBorderPadding(1, 1, 2, 2).
 		SetTitle(" PS2 Game Manager ").
 		SetTitleAlign(tview.AlignCenter)
 	screen.root.SetSelectedFunc(func(index int, _, _ string, s rune) {

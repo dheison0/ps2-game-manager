@@ -3,15 +3,16 @@ package tui
 import (
 	"os"
 	"path"
-	"ps2manager/utils"
 	"slices"
 	"strings"
+
+	"ps2manager/utils"
 
 	"github.com/rivo/tview"
 )
 
 type FileSelectorScreen struct {
-	screenId   string
+	ID         string
 	root       *tview.List
 	actualPath string
 
@@ -22,7 +23,7 @@ type FileSelectorScreen struct {
 }
 
 func NewFileSelectorScreen() *FileSelectorScreen {
-	screen := &FileSelectorScreen{screenId: "fileSelector"}
+	screen := &FileSelectorScreen{ID: "fileSelector"}
 	screen.root = tview.NewList()
 	root, err := os.Getwd()
 	if err == nil {
@@ -30,7 +31,7 @@ func NewFileSelectorScreen() *FileSelectorScreen {
 	}
 	screen.root.
 		SetBorder(true).
-		SetBorderPadding(1, 1, 1, 1).
+		SetBorderPadding(1, 1, 2, 2).
 		SetTitle(" Select file ")
 	screen.root.
 		ShowSecondaryText(false).
@@ -55,7 +56,7 @@ func NewFileSelectorScreen() *FileSelectorScreen {
 }
 
 func (f *FileSelectorScreen) Show() {
-	pages.SwitchToPage(f.screenId)
+	pages.SwitchToPage(f.ID)
 }
 
 func (f *FileSelectorScreen) UpdateFileList() {

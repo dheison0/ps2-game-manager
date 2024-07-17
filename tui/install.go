@@ -17,7 +17,7 @@ func NewInstallScreen() *InstallScreen {
 	screen.root = tview.NewForm()
 	screen.root.
 		SetBorder(true).
-		SetBorderPadding(1, 1, 1, 1).
+		SetBorderPadding(1, 1, 2, 2).
 		SetTitle(" Install new game ")
 	pages.AddPage("install", screen.root, true, false)
 	return screen
