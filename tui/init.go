@@ -8,15 +8,17 @@ var (
 	pages *tview.Pages
 
 	// Screens
-	menu            *MenuScreen
-	fileSelector    *FileSelectorScreen
-	errorDialog     *ErrorDialogScreen
-	install         *InstallScreen
-	installProgress *InstallProgressScreen
-	covers          *CoverDownloadScreen
-	actionsMenu     *ActionsMenuScreen
-	actionsDelete   *ActionsDeleteScreen
-	actionsRename   *ActionsRenameScreen
+	menu               *MenuScreen
+	fileSelector       *FileSelectorScreen
+	errorDialog        *ErrorDialogScreen
+	install            *InstallScreen
+	installProgress    *InstallProgressScreen
+	covers             *CoverDownloadScreen
+	actionsMenu        *ActionsMenuScreen
+	actionsDelete      *ActionsDeleteScreen
+	actionsRename      *ActionsRenameScreen
+	gameExport         *GameExporterScreen
+	gameExportProgress *GameExportProgressScreen
 )
 
 func Init() *tview.Application {
@@ -31,6 +33,8 @@ func Init() *tview.Application {
 	actionsMenu = NewActionsMenuScreen()
 	actionsDelete = NewActionsDeleteScreen()
 	actionsRename = NewActionsRenameScreen()
+	gameExport = NewGameExporterScreen()
+	gameExportProgress = NewGameExportProgressScreen()
 
 	app.SetRoot(pages, true)
 	app.EnableMouse(true)

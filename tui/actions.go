@@ -34,6 +34,11 @@ func NewActionsMenuScreen() *ActionsMenuScreen {
 			actionsRename.SetGameIndex(screen.gameIndex)
 			actionsRename.Show()
 		}).
+		AddItem("Export as ISO", "", 'e', func() {
+			game := manager.Get(screen.gameIndex)
+			gameExport.SetGame(game)
+			gameExport.Show()
+		}).
 		AddItem("Delete", "", 'd', func() {
 			actionsDelete.SetGameIndex(screen.gameIndex)
 			actionsDelete.Show()

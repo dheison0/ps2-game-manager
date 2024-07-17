@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -178,4 +179,51 @@ func (g *GameConfig) DownloadCover() error {
 		return err
 	}
 	return os.WriteFile(g.CoverPath, resizedCover, 0644)
+}
+
+func (g *GameConfig) Export(outputFile string, progress chan int, errChan chan error) {
+	file, err := os.Create(outputFile)
+	if err != nil {
+		errChan <- err
+		return
+	}
+	defer file.Close()
+	actualPercentage := 0
+	writtenSize := int64(0)
+	totalSize, err := utils.GetFileSizeSum(g.Files)
+	if err != nil {
+		errChan <- errors.New("failed to get file size sum: " + err.Error())
+		return
+	}
+	buffer := make([]byte, 1048576)
+	for _, f := range g.Files {
+		part, err := os.Open(f)
+		if err != nil {
+			errChan <- errors.New("error on file '" + f + "':" + err.Error())
+			return
+		}
+		for {
+			n, err := part.Read(buffer)
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				errChan <- errors.New("failed to read from file '" + f + "': " + err.Error())
+				part.Close()
+				return
+			} else if _, err = file.Write(buffer[:n]); err != nil {
+				errChan <- errors.New("failed to write data to file: " + err.Error())
+				return
+			}
+			writtenSize += int64(n)
+			newPercent := int(math.Floor(float64(writtenSize) / float64(totalSize) * 100))
+			if newPercent > actualPercentage {
+				file.Sync()
+				actualPercentage = newPercent
+				progress <- actualPercentage
+			}
+		}
+	}
+	if err = file.Sync(); err != nil {
+		errChan <- errors.New("final file sync failed: " + err.Error())
+	}
 }
