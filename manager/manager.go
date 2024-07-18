@@ -5,21 +5,18 @@ import (
 	"math"
 	"os"
 	"path"
+	"ps2manager/config"
 	"ps2manager/utils"
 	"strings"
 )
 
-const (
-	SystemConfigIsoPath = "/SYSTEM.CNF"
-	DefaultChunkSize    = 1048576 // 1MiB
-)
+const SystemConfigIsoPath = "/SYSTEM.CNF"
 
 var dataDir, configFile string
 var games []*GameConfig
 
 func InitManager(dir string) error {
-	configFile = path.Join(dir, "ul.cfg")
-	dataDir = dir
+	dataDir, configFile = dir, path.Join(dir, "ul.cfg")
 	if err := os.MkdirAll(path.Join(dataDir, "ART"), os.ModePerm); err != nil {
 		return err
 	}
@@ -30,20 +27,7 @@ func InitManager(dir string) error {
 		}
 		file.Close()
 	}
-	return ReadConfigFile()
-}
-
-func ReadConfigFile() error {
-	data, err := os.ReadFile(configFile)
-	if err != nil {
-		return err
-	}
-	for i := 0; i < len(data)/GameConfigSize; i++ {
-		offset := i * GameConfigSize
-		game := NewGameConfigFromBytes(data[offset:offset+GameConfigSize], dataDir)
-		games = append(games, game)
-	}
-	return nil
+	return readConfigFile()
 }
 
 func GetAll() []*GameConfig {
@@ -56,7 +40,7 @@ func Get(index int) *GameConfig {
 
 func Add(game *GameConfig) error {
 	games = append(games, game)
-	return WriteConfigChanges()
+	return writeConfigChanges()
 }
 
 func Install(isoPath, name string, progress chan int) error {
@@ -65,6 +49,7 @@ func Install(isoPath, name string, progress chan int) error {
 		return err
 	}
 	isoReader, _ := os.Open(isoPath)
+	defer isoReader.Close()
 	isoStat, _ := isoReader.Stat()
 	image := strings.Split(strings.Split(string(systemCnf), ":\\")[1], ";")[0]
 	size := isoStat.Size()
@@ -82,44 +67,6 @@ func Install(isoPath, name string, progress chan int) error {
 	return Add(game)
 }
 
-func writeGameParts(iso io.Reader, game *GameConfig, size int64, progress chan int) error {
-	totalRead, percent := 0, 0
-	chunk := make([]byte, DefaultChunkSize)
-	progress <- percent
-	for _, partName := range game.Files {
-		partFile, err := os.Create(partName)
-		if err != nil {
-			return err
-		}
-		toRead := MaxPartSize
-		for toRead > 0 {
-			n, err := iso.Read(chunk)
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return err
-			}
-			if _, err = partFile.Write(chunk[:n]); err != nil {
-				return err
-			}
-
-			toRead -= n
-			totalRead += n
-			newPercent := int(math.Floor(float64(totalRead) / float64(size) * 100.0))
-			if newPercent > percent {
-				partFile.Sync()
-				percent = newPercent
-				progress <- percent
-			}
-		}
-		if err = partFile.Close(); err != nil {
-			return err
-		}
-
-	}
-	return nil
-}
-
 func Rename(index int, newName string) error {
 	for _, g := range games {
 		if g.GetName() == newName {
@@ -129,7 +76,7 @@ func Rename(index int, newName string) error {
 	if err := games[index].Rename(newName); err != nil {
 		return err
 	}
-	return WriteConfigChanges()
+	return writeConfigChanges()
 }
 
 func Delete(index int) error {
@@ -138,10 +85,27 @@ func Delete(index int) error {
 		return err
 	}
 	games = append(games[:index], games[index+1:]...)
-	return WriteConfigChanges()
+	return writeConfigChanges()
 }
 
-func WriteConfigChanges() error {
+// CheckIfAcceptName only accepts ascii characters and till the maximum name size
+func CheckIfAcceptName(t string, r rune) bool {
+	return len(t) <= MaxNameSize && r <= 127
+}
+
+func readConfigFile() error {
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(data)/GameConfigSize; i++ {
+		offset := i * GameConfigSize
+		games = append(games, NewGameConfigFromBytes(data[offset:offset+GameConfigSize], dataDir))
+	}
+	return nil
+}
+
+func writeConfigChanges() error {
 	data := make([]byte, len(games)*GameConfigSize)
 	for i, game := range games {
 		copy(data[i*GameConfigSize:], game.AsBytes())
@@ -149,7 +113,40 @@ func WriteConfigChanges() error {
 	return os.WriteFile(configFile, data, 0644)
 }
 
-// CheckIfAcceptName only accepts ascii characters and till the maximum name size
-func CheckIfAcceptName(t string, r rune) bool {
-	return len(t) <= MaxNameSize && r <= 127
+func writeGameParts(iso io.Reader, game *GameConfig, size int64, progress chan int) error {
+	written, actualProgress := 0, 0
+	buffer := make([]byte, config.BUFFER_SIZE)
+	progress <- actualProgress
+	for _, partName := range game.Files {
+		partFile, err := os.Create(partName)
+		if err != nil {
+			return err
+		}
+		toWrite := MaxPartSize
+		for toWrite > 0 {
+			n, err := iso.Read(buffer)
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return err
+			}
+			if _, err = partFile.Write(buffer[:n]); err != nil {
+				return err
+			}
+
+			toWrite -= n
+			written += n
+			progressPercentage := int(math.Floor(float64(written) / float64(size) * 100.0))
+			if progressPercentage > actualProgress {
+				partFile.Sync()
+				actualProgress = progressPercentage
+				progress <- actualProgress
+			}
+		}
+		if err = partFile.Sync(); err != nil {
+			return err
+		}
+		partFile.Close()
+	}
+	return nil
 }

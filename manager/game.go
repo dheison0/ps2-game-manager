@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"ps2manager/config"
 	"ps2manager/utils"
 	"ps2manager/utils/oplCRC32"
 	"slices"
@@ -195,7 +196,7 @@ func (g *GameConfig) Export(outputFile string, progress chan int, errChan chan e
 		errChan <- errors.New("failed to get file size sum: " + err.Error())
 		return
 	}
-	buffer := make([]byte, 1048576)
+	buffer := make([]byte, config.BUFFER_SIZE)
 	for _, f := range g.Files {
 		part, err := os.Open(f)
 		if err != nil {
@@ -222,6 +223,7 @@ func (g *GameConfig) Export(outputFile string, progress chan int, errChan chan e
 				progress <- actualPercentage
 			}
 		}
+		part.Close()
 	}
 	if err = file.Sync(); err != nil {
 		errChan <- errors.New("final file sync failed: " + err.Error())

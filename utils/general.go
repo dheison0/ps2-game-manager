@@ -5,13 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"ps2manager/config"
 	"strings"
-)
-
-const (
-	KIBI_BYTE = 1_024
-	MEBI_BYTE = 1_048_576
-	GIBI_BYTE = 1_073_741_824
 )
 
 func FileExists(filePath string) bool {
@@ -45,12 +40,12 @@ func GetFileSizeSum(files []string) (int64, error) {
 
 func FileSizeToHumanReadable(size int64) string {
 	s := float64(size)
-	if s >= GIBI_BYTE {
-		return fmt.Sprintf("%0.2fGiB", s/GIBI_BYTE)
-	} else if s >= MEBI_BYTE {
-		return fmt.Sprintf("%0.2fMiB", s/MEBI_BYTE)
-	} else if s >= KIBI_BYTE {
-		return fmt.Sprintf("%0.2fKiB", s/KIBI_BYTE)
+	if s >= config.GIBI_BYTE {
+		return fmt.Sprintf("%0.2fGiB", s/config.GIBI_BYTE)
+	} else if s >= config.MEBI_BYTE {
+		return fmt.Sprintf("%0.2fMiB", s/config.MEBI_BYTE)
+	} else if s >= config.KIBI_BYTE {
+		return fmt.Sprintf("%0.2fKiB", s/config.KIBI_BYTE)
 	}
 	return fmt.Sprintf("%dB", size)
 }

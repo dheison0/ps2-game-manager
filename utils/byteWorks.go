@@ -1,7 +1,5 @@
 package utils
 
-// !!! This file must have only functions that works directly with bytes !!!
-
 import (
 	"bytes"
 	"errors"
@@ -20,7 +18,7 @@ var (
 
 func BytesToString(data []byte) string {
 	n := bytes.IndexByte(data, 0)
-	if n < 0 {
+	if n == -1 {
 		n = len(data) - 1
 	}
 	return string(data[:n])
@@ -32,6 +30,7 @@ func ReadFileFromISO(iso, filename string) ([]byte, error) {
 	if err != nil {
 		return empty, ErrUnableToOpen
 	}
+	defer isoFile.Close()
 	isoReader, err := iso9660.NewReader(isoFile)
 	if err != nil {
 		return empty, err
