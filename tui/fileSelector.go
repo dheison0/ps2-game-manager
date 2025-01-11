@@ -3,10 +3,9 @@ package tui
 import (
 	"os"
 	"path"
+	"ps2manager/utils"
 	"slices"
 	"strings"
-
-	"ps2manager/utils"
 
 	"github.com/rivo/tview"
 )
@@ -16,7 +15,7 @@ type FileSelectorScreen struct {
 	root       *tview.List
 	actualPath string
 
-	// callback is a function called when a file is selected
+	// callback is a function called when a file or folder is selected
 	callback       func(string)
 	acceptFolders  bool
 	fileExtensions string
@@ -88,8 +87,10 @@ func filterDirItems[T []os.DirEntry](entries T, fileExtensions string, showHidde
 	var items []os.DirEntry
 	for _, entry := range entries {
 		name := entry.Name()
-		if (!showHiddenFiles && isHiddenFile(name)) || (!entry.IsDir() && fileExtensions != "" && !fileExtensionInList(fileExtensions, name)) {
-			continue // skip hidden files
+		if (!showHiddenFiles && isHiddenFile(name)) ||
+			(!entry.IsDir() && fileExtensions != "" &&
+				!fileExtensionInList(fileExtensions, name)) {
+			continue // skip hidden file and files with a different extension than needed
 		}
 		items = append(items, entry)
 	}
@@ -106,7 +107,7 @@ func fileExtensionInList(fileExtensions, fileName string) bool {
 	return strings.Contains(fileExtensions, extension)
 }
 
-// SetSelectFileFunc is a function that set a callback function called when a file is selected
+// SetSelectFileFunc sets the configuration of file selector and updates item list
 func (f *FileSelectorScreen) SetSelectFileConfig(selectedFunc func(string), acceptFolders bool, fileExtensions string) {
 	f.callback = selectedFunc
 	f.acceptFolders = acceptFolders

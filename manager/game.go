@@ -27,7 +27,7 @@ const ( // Sizes
 	MaxNameSize       = 32
 	MaxImageSize      = 15
 	PaddingConfigSize = 15
-	ConfigSize        = 64 // Every game config takes 64 bytes on ul.cfg file
+	GameConfigSize    = 64 // Every game config takes 64 bytes on ul.cfg file
 )
 
 const ( // Covers
@@ -52,8 +52,7 @@ type GameConfig struct {
 	GamePath  string
 }
 
-const GameConfigSize = 64
-
+// NewGameConfig creates a new configuration for a game that isn't instaled yet
 func NewGameConfig(name, image, path string, size int64) *GameConfig {
 	g := &GameConfig{GamePath: path}
 
@@ -66,11 +65,13 @@ func NewGameConfig(name, image, path string, size int64) *GameConfig {
 		g.Media = MediaDVD
 		g.Parts = int8(math.Ceil(float64(size) / float64(MaxPartSize)))
 	}
-	g.setup()
+	g.Update()
 
 	return g
 }
 
+// NewGameConfigFromBytes loads a game configuration from data given from a
+// previous game installation
 func NewGameConfigFromBytes(data []byte, path string) *GameConfig {
 	g := &GameConfig{GamePath: path}
 
@@ -85,29 +86,41 @@ func NewGameConfigFromBytes(data []byte, path string) *GameConfig {
 	offset++
 	copy(g.Padding[:], data[offset:])
 
-	g.setup()
+	g.Update()
 	return g
 }
 
-func (g *GameConfig) setup() {
-	g.updateHash()
-	g.generateFileNames()
+// Update updates the game name hash, generate file names based on new hash and
+// add padding byte
+func (g *GameConfig) Update() {
+	g.refreshNameHash()
+	g.generateAllFileNames()
 	g.Padding[4] = PaddingByte
 }
 
-func (g *GameConfig) updateHash() {
+// refreshNameHash creates a new CRC32 hash of the game name and update that field
+func (g *GameConfig) refreshNameHash() {
 	g.NameHash = oplCRC32.Crc32(utils.BytesToString(g.Name[:]))
 }
 
-func (g *GameConfig) generateFileNames() {
+// generateAllFileNames uses the path, name hash, image and part number
+// informations to generate the file names of all game parts on disk
+func (g *GameConfig) generateAllFileNames() {
 	image := g.GetImage()
 	for partNumber := int8(0); partNumber < g.Parts; partNumber++ {
-		partName := fmt.Sprintf("ul.%s.%s.%02d", g.NameHash, image, partNumber)
-		g.Files = append(g.Files, path.Join(g.GamePath, partName))
+		g.Files = append(g.Files, g.generatePartName(partNumber))
 	}
 	g.CoverPath = path.Join(g.GamePath, "ART", image+"_COV.jpg")
 }
 
+// generatePartName generates a game part name with full path
+func (g *GameConfig) generatePartName(partNumber int8) string {
+	partName := fmt.Sprintf("ul.%s.%s.%02d", g.NameHash, g.GetImage(), partNumber)
+	return path.Join(g.GamePath, partName)
+}
+
+// AsBytes returns a game config as an slice of bytes to be saved or
+// transfered over network
 func (g *GameConfig) AsBytes() []byte {
 	return slices.Concat(
 		g.Name[:],
@@ -117,25 +130,25 @@ func (g *GameConfig) AsBytes() []byte {
 	)
 }
 
+// Rename renames a game and it's files on disk
 func (g *GameConfig) Rename(name string) error {
 	// This's necessary because if we just copy the name it won't delete the end when the new name is smaller than old one
-	newName := make([]byte, MaxNameSize)
+	newName := make([]byte, len(g.Name))
 	copy(newName, []byte(name))
 	copy(g.Name[:], newName)
 
-	oldHash := g.NameHash // save to rename files
-	g.updateHash()
-	newHash := g.NameHash
-	for index, fileName := range g.Files {
-		newFileName := strings.Replace(fileName, oldHash, newHash, 1)
-		if err := os.Rename(fileName, newFileName); err != nil {
+	g.refreshNameHash()
+	for idx, oldFile := range g.Files {
+		newFile := g.generatePartName(int8(idx))
+		if err := os.Rename(oldFile, newFile); err != nil {
 			return err
 		}
-		g.Files[index] = newFileName
+		g.Files[idx] = newFile
 	}
 	return nil
 }
 
+// DeleteFiles deletes all files of the game, including it's cover
 func (g *GameConfig) DeleteFiles() error {
 	for _, file := range g.Files {
 		if err := os.Remove(file); err != nil {
@@ -146,18 +159,22 @@ func (g *GameConfig) DeleteFiles() error {
 	return nil
 }
 
+// IsCoverInstalled checks if a cover is installed for the game
 func (g *GameConfig) IsCoverInstalled() bool {
 	return utils.FileExists(g.CoverPath)
 }
 
+// GetName returns game name as string
 func (g *GameConfig) GetName() string {
 	return utils.BytesToString(g.Name[:])
 }
 
+// GetImage returns game image as string
 func (g *GameConfig) GetImage() string {
 	return utils.BytesToString(g.Image[3:])
 }
 
+// DownloadCover tries to download game cover for remote github repository
 func (g *GameConfig) DownloadCover() error {
 	// Make image name looks like on the website
 	gameImage := strings.Replace(g.GetImage(), "_", "-", 1)
@@ -175,14 +192,15 @@ func (g *GameConfig) DownloadCover() error {
 	if err != nil {
 		return err
 	}
-	resizedCover, err := utils.ResizeJPGToMax(originalCover, CoverMaxWidth, CoverMaxHeight)
+	resizedCover, err := utils.ResizeJPGKeepingAspectRatio(originalCover, CoverMaxWidth, CoverMaxHeight)
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(g.CoverPath, resizedCover, 0644)
 }
 
-func (g *GameConfig) Export(outputFile string, progress chan int, errChan chan error) {
+// ExportAsISO exports the game as an ISO file
+func (g *GameConfig) ExportAsISO(outputFile string, progress chan int, errChan chan error) {
 	file, err := os.Create(outputFile)
 	if err != nil {
 		errChan <- err
@@ -191,34 +209,38 @@ func (g *GameConfig) Export(outputFile string, progress chan int, errChan chan e
 	defer file.Close()
 	actualPercentage := 0
 	writtenSize := int64(0)
-	totalSize, err := utils.GetFileSizeSum(g.Files)
+	totalSize, err := utils.GetFilesSizeSum(g.Files)
 	if err != nil {
-		errChan <- errors.New("failed to get file size sum: " + err.Error())
+		errChan <- errors.New("failed to get sum of all game parts size: " + err.Error())
 		return
 	}
 	buffer := make([]byte, config.BUFFER_SIZE)
-	for _, f := range g.Files {
+	for _, f := range g.Files { // this will read all parts
 		part, err := os.Open(f)
 		if err != nil {
-			errChan <- errors.New("error on file '" + f + "':" + err.Error())
+			errChan <- errors.New("error opening file '" + f + "': " + err.Error())
 			return
 		}
-		for {
-			n, err := part.Read(buffer)
+		for { // read part data in chunks
+			readSize, err := part.Read(buffer)
 			if err == io.EOF {
 				break
 			} else if err != nil {
 				errChan <- errors.New("failed to read from file '" + f + "': " + err.Error())
 				part.Close()
 				return
-			} else if _, err = file.Write(buffer[:n]); err != nil {
-				errChan <- errors.New("failed to write data to file: " + err.Error())
+			} else if _, err = file.Write(buffer[:readSize]); err != nil {
+				errChan <- errors.New("fail writing chunk to iso file: " + err.Error())
 				return
 			}
-			writtenSize += int64(n)
+			writtenSize += int64(readSize)
 			newPercent := int(math.Floor(float64(writtenSize) / float64(totalSize) * 100))
 			if newPercent > actualPercentage {
-				file.Sync()
+				if err = file.Sync(); err != nil {
+					errChan <- errors.New("fail to flush data on ISO file: " + err.Error())
+					part.Close()
+					return
+				}
 				actualPercentage = newPercent
 				progress <- actualPercentage
 			}

@@ -16,14 +16,16 @@ var (
 	ErrNotFound     = errors.New("file not found")
 )
 
+// BytesToString transforms a slice of bytes to a string
 func BytesToString(data []byte) string {
 	n := bytes.IndexByte(data, 0)
 	if n == -1 {
-		n = len(data) - 1
+    return string(data)
 	}
 	return string(data[:n])
 }
 
+// ReadFileFromISO read a single file that is inside of an ISO file
 func ReadFileFromISO(iso, filename string) ([]byte, error) {
 	empty := []byte{}
 	isoFile, err := os.Open(iso)

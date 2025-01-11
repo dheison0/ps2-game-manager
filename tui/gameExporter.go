@@ -64,7 +64,7 @@ func (s *GameExporterScreen) onExportPress() {
 	outputFile := path.Join(s.outputFolder, s.fileName)
 	progress := make(chan int)
 	errChan := make(chan error)
-	go s.game.Export(outputFile, progress, errChan)
+	go s.game.ExportAsISO(outputFile, progress, errChan)
 	gameExportProgress.Show()
 	gameExportProgress.ShowProgress(outputFile, progress, errChan)
 }
@@ -80,7 +80,7 @@ func (s *GameExporterScreen) Show() {
 }
 
 func (s *GameExporterScreen) updateScreen() {
-	size, err := utils.GetFileSizeSum(s.game.Files)
+	size, err := utils.GetFilesSizeSum(s.game.Files)
 	if err != nil {
 		errorDialog.SetMessage("Error loading game info, error:\n" + err.Error())
 		errorDialog.Show()
@@ -140,7 +140,7 @@ func (s *GameExportProgressScreen) ShowProgress(fileName string, progress chan i
 			}
 			s.root.SetText(fmt.Sprintf("[white]Exportation of '[purple]%s[white]' is [purple]%d%%[white] done...", fileName, p))
 		case err := <-errChan:
-			errorDialog.SetMessage(fmt.Sprintf("Failed to export game:\n" + err.Error()))
+			errorDialog.SetMessage(fmt.Sprintf("Failed to export game:\n%s", err.Error()))
 			errorDialog.Show()
 		}
 	}

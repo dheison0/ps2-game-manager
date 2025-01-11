@@ -12,8 +12,10 @@ import (
 
 const SystemConfigIsoPath = "/SYSTEM.CNF"
 
-var dataDir, configFile string
-var games []*GameConfig
+var (
+	dataDir, configFile string
+	games               []*GameConfig
+)
 
 func InitManager(dir string) error {
 	dataDir, configFile = dir, path.Join(dir, "ul.cfg")
@@ -30,19 +32,23 @@ func InitManager(dir string) error {
 	return readConfigFile()
 }
 
+// GetAll returns a slice of all installed games
 func GetAll() []*GameConfig {
 	return games
 }
 
+// Get gets a specific game by their position on gomes slice
 func Get(index int) *GameConfig {
 	return games[index]
 }
 
+// Add inserts a new game into game slice and write it to config file
 func Add(game *GameConfig) error {
 	games = append(games, game)
 	return writeConfigChanges()
 }
 
+// Install installs a new game into OPL games path
 func Install(isoPath, name string, progress chan int) error {
 	systemCnf, err := utils.ReadFileFromISO(isoPath, SystemConfigIsoPath)
 	if err != nil {
@@ -67,6 +73,7 @@ func Install(isoPath, name string, progress chan int) error {
 	return Add(game)
 }
 
+// Rename renames a game and update their files
 func Rename(index int, newName string) error {
 	for _, g := range games {
 		if g.GetName() == newName {
@@ -79,6 +86,7 @@ func Rename(index int, newName string) error {
 	return writeConfigChanges()
 }
 
+// Delete deletes all files that is linked to the game
 func Delete(index int) error {
 	game := games[index]
 	if err := game.DeleteFiles(); err != nil {
