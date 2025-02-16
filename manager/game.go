@@ -10,7 +10,6 @@ import (
 	"path"
 	"ps2manager/config"
 	"ps2manager/utils"
-	"ps2manager/utils/oplCRC32"
 	"slices"
 	"strings"
 )
@@ -100,7 +99,7 @@ func (g *GameConfig) Update() {
 
 // refreshNameHash creates a new CRC32 hash of the game name and update that field
 func (g *GameConfig) refreshNameHash() {
-	g.NameHash = oplCRC32.Crc32(utils.BytesToString(g.Name[:]))
+	g.NameHash = utils.Crc32(g.Name[:])
 }
 
 // generateAllFileNames uses the path, name hash, image and part number
