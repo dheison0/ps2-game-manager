@@ -17,24 +17,27 @@ jobs:
         with:
           go-version: "1.22"
 
-      - name: Building PS2Manager for Linux x64...
-        run: go build -ldflags '-s -w' -trimpath -o ps2manager-linux-amd64
+      - name: Building PS2Manager for Linux...
+        run: |
+          CGO_ENABLED=0
+          GOOS=linux
+          for arch in 386 arm arm64 mips mips64 ppc64 riscv64; do
+            echo "Building for $arch..."
+            GOARCH=$arch go build -ldflags '-s -w' -trimpath -o ps2manager-linux-$arch
+          done
 
       - name: Create release message body...
         id: release_body
         run: |
-          b=`git log --oneline -n 10 | cat`
-          b="${b//'%'/'%25'}"  # Scape sequences
-          b="${b//$'\n'/'%0A'}"
-          b="${b//$'\r'/'%0D'}"
-          echo "RELEASE_BODY=$b" >> $GITHUB_OUTPUT
+          body=`git log --oneline -n 10 | cat`
+          echo "RELEASE_BODY='$body'" >> $GITHUB_OUTPUT
 
       - name: Upload binary
         uses: svenstaro/upload-release-action@v2
         with:
-          file: ps2manager-linux-amd64
           tag: nightly
-          asset_name: ps2manager-linux-amd64
           overwrite: true
+          file_glob: true
+          file: ps2manager-*
           body: |
             ${{ steps.release_body.outputs.RELEASE_BODY }}
