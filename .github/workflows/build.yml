@@ -28,9 +28,13 @@ jobs:
 
       - name: Create release message body...
         id: release_body
+        shell: bash
         run: |
-          body=`git log --oneline -n 10 | cat`
-          echo "RELEASE_BODY='$body'" >> $GITHUB_OUTPUT
+          body="$(git log --oneline -n 10)"
+          body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}"
+          echo "RELEASE_BODY=$body" >> $GITHUB_OUTPUT
 
       - name: Upload binary
         uses: svenstaro/upload-release-action@v2
