@@ -51,7 +51,7 @@ type GameConfig struct {
 	GamePath  string
 }
 
-// NewGameConfig creates a new configuration for a game that isn't instaled yet
+// NewGameConfig creates a new configuration for a game that isn't installed yet
 func NewGameConfig(name, image, path string, size int64) *GameConfig {
 	g := &GameConfig{GamePath: path}
 
@@ -103,7 +103,7 @@ func (g *GameConfig) refreshNameHash() {
 }
 
 // generateAllFileNames uses the path, name hash, image and part number
-// informations to generate the file names of all game parts on disk
+// information to generate the file names of all game parts on disk
 func (g *GameConfig) generateAllFileNames() {
 	image := g.GetImage()
 	for partNumber := int8(0); partNumber < g.Parts; partNumber++ {
@@ -119,7 +119,7 @@ func (g *GameConfig) generatePartName(partNumber int8) string {
 }
 
 // AsBytes returns a game config as an slice of bytes to be saved or
-// transfered over network
+// transferred over network
 func (g *GameConfig) AsBytes() []byte {
 	return slices.Concat(
 		g.Name[:],
@@ -249,4 +249,16 @@ func (g *GameConfig) ExportAsISO(outputFile string, progress chan int, errChan c
 	if err = file.Sync(); err != nil {
 		errChan <- errors.New("final file sync failed: " + err.Error())
 	}
+}
+
+func (g *GameConfig) GetSize() (int64, error) {
+	var s int64 = 0
+	for _, f := range g.Files {
+		stat, err := os.Stat(f)
+		if err != nil {
+			return s, fmt.Errorf("failed to read '%s' file", f)
+		}
+		s += stat.Size()
+	}
+	return s, nil
 }

@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"ps2manager/manager"
+	"ps2manager/utils"
 
 	"github.com/rivo/tview"
 )
@@ -45,7 +46,7 @@ func NewActionsMenuScreen() *ActionsMenuScreen {
 		}).
 		AddItem("Go back", "", 'q', menu.Show)
 	screen.root.
-		AddItem(screen.info, 3, 1, false).
+		AddItem(screen.info, 4, 1, false).
 		AddItem(screen.buttons, 0, 1, true)
 	pages.AddPage("actionsMenu", screen.root, true, false)
 	return screen
@@ -60,10 +61,15 @@ func (m *ActionsMenuScreen) UpdateGame(gameIndex int) {
 		m.gameIndex = gameIndex
 	}
 	game := manager.Get(m.gameIndex)
+	size, err := game.GetSize()
+	if err != nil {
+		errorDialog.SetMessage(fmt.Sprintf("Can't get game size!\nError: %s", err.Error()))
+	}
 	m.info.SetText(fmt.Sprintf(
-		"[white]Name: [purple]%s\n[white]Image: [purple]%s[default]",
+		"[white]Name: [purple]%s\n[white]Image: [purple]%s[default]\n[white]Size: [purple]%s[default]",
 		game.GetName(),
 		game.GetImage(),
+		utils.FileSizeToHumanReadable(size),
 	))
 }
 
