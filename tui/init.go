@@ -19,6 +19,7 @@ var (
 	actionsRename      *ActionsRenameScreen
 	gameExport         *GameExporterScreen
 	gameExportProgress *GameExportProgressScreen
+	cleanerScreen      *CleanerScreen
 )
 
 func Init() *tview.Application {
@@ -35,6 +36,7 @@ func Init() *tview.Application {
 	actionsRename = NewActionsRenameScreen()
 	gameExport = NewGameExporterScreen()
 	gameExportProgress = NewGameExportProgressScreen()
+	cleanerScreen = NewCleanerScreen()
 
 	app.SetRoot(pages, true)
 	app.EnableMouse(true)

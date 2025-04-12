@@ -62,5 +62,9 @@ func (m *MenuScreen) UpdateItemList() {
 			covers.Show()
 			covers.DownloadMissingCovers()
 		}).
+    AddItem("Clean unused files", "", 'x', func() {
+      cleanerScreen.Update()
+      cleanerScreen.Show()
+    }).
 		AddItem("Quit", "", 'q', app.Stop)
 }

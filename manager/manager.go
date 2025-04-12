@@ -32,6 +32,10 @@ func InitManager(dir string) error {
 	return readConfigFile()
 }
 
+func GetDataDir() string {
+	return dataDir
+}
+
 // GetAll returns a slice of all installed games
 func GetAll() []*GameConfig {
 	return games
@@ -106,7 +110,7 @@ func readConfigFile() error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < len(data)/GameConfigSize; i++ {
+	for i := range len(data) / GameConfigSize {
 		offset := i * GameConfigSize
 		games = append(games, NewGameConfigFromBytes(data[offset:offset+GameConfigSize], dataDir))
 	}
