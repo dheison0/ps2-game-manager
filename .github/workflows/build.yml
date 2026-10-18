@@ -1,42 +1,50 @@
-name: PS2 Manager linux nightly build
+name: PS2 Manager nightly build
 
 on:
   push:
     branches: ["main"]
 
 jobs:
-  Linux:
-    name: Build PS2 Manager Linux Nightly
+  Release:
+    name: Build PS2 Manager Nightly Binaries
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
 
-      - name: Building PS2Manager for Linux...
+      - name: Build PS2Manager for Linux
         run: |
           CGO_ENABLED=0
-          GOOS=linux
-          for arch in 386 arm arm64 mips mips64 ppc64 riscv64; do
-            echo "Building for $arch..."
-            GOARCH=$arch go build -ldflags '-s -w' -trimpath -o ps2manager-linux-$arch
+          for arch in amd64 arm64 386 arm riscv64; do
+            echo "Building Linux $arch..."
+            GOOS=linux GOARCH=$arch go build -ldflags '-s -w' -trimpath -o "ps2manager-linux-$arch"
           done
 
-      - name: Create release message body...
+      - name: Build PS2Manager for macOS (darwin)
+        run: |
+          CGO_ENABLED=0
+          for arch in amd64 arm64; do
+            echo "Building macOS $arch..."
+            GOOS=darwin GOARCH=$arch go build -ldflags '-s -w' -trimpath -o "ps2manager-darwin-$arch"
+          done
+
+      - name: Create release message body
         id: release_body
         shell: bash
         run: |
-          body="$(git log --oneline -n 10)"
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}"
-          echo "RELEASE_BODY=$body" >> $GITHUB_OUTPUT
+          {
+            echo "RELEASE_BODY<<EOF"
+            echo "## Recent changes"
+            git log --pretty=format:'- %s' -n 5
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Upload binary
+      - name: Upload binaries
         uses: svenstaro/upload-release-action@v2
         with:
           tag: nightly
