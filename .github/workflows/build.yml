@@ -11,6 +11,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -37,11 +39,13 @@ jobs:
         id: release_body
         shell: bash
         run: |
+          body="$(git log --pretty=format:'- %s' -n 5)"
+          delimiter="release_body_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
           {
-            echo "RELEASE_BODY<<EOF"
+            echo "RELEASE_BODY<<${delimiter}"
             echo "## Recent changes"
-            git log --pretty=format:'- %s' -n 5
-            echo "EOF"
+            printf '%s\n' "$body"
+            echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload binaries
