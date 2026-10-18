@@ -80,7 +80,7 @@ func (s *GameExporterScreen) Show() {
 }
 
 func (s *GameExporterScreen) updateScreen() {
-	size, err := utils.GetFilesSizeSum(s.game.Files)
+	size, err := s.game.GetSize()
 	if err != nil {
 		errorDialog.SetMessage("Error loading game info, error:\n" + err.Error())
 		errorDialog.Show()

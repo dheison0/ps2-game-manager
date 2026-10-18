@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// GameFile represents a single game file with its path and size.
 type GameFile struct {
 	File string
 	Size int64
@@ -38,6 +39,7 @@ func getAllGameFiles() ([]GameFile, error) {
 	return files, nil
 }
 
+// GetUnusedGameFiles finds all files in the data directory that are not associated with any game in the manager.
 func GetUnusedGameFiles() ([]GameFile, error) {
 	files, err := getAllGameFiles()
 	if err != nil {
@@ -54,6 +56,7 @@ func GetUnusedGameFiles() ([]GameFile, error) {
 	return files, err
 }
 
+// DeleteFiles removes the specified game files from the filesystem.
 func DeleteFiles(files []GameFile) error {
 	for _, f := range files {
 		if err := os.Remove(f.File); err != nil {

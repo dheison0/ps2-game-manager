@@ -81,7 +81,7 @@ func NewGameConfigFromBytes(data []byte, path string) *GameConfig {
 	offset += len(g.Image)
 	g.Parts = int8(data[offset])
 	offset++
-	g.Media = int8(data[offset])
+	g.Media = int8(data[offset]) // One of MediaCD or MediaDVD
 	offset++
 	copy(g.Padding[:], data[offset:])
 
@@ -160,7 +160,7 @@ func (g *GameConfig) DeleteFiles() error {
 
 // IsCoverInstalled checks if a cover is installed for the game
 func (g *GameConfig) IsCoverInstalled() bool {
-	return utils.FileExists(g.CoverPath)
+	return utils.CheckFileExists(g.CoverPath)
 }
 
 // GetName returns game name as string
@@ -208,7 +208,7 @@ func (g *GameConfig) ExportAsISO(outputFile string, progress chan int, errChan c
 	defer file.Close()
 	actualPercentage := 0
 	writtenSize := int64(0)
-	totalSize, err := utils.GetFilesSizeSum(g.Files)
+	totalSize, err := g.GetSize()
 	if err != nil {
 		errChan <- errors.New("failed to get sum of all game parts size: " + err.Error())
 		return
@@ -251,6 +251,7 @@ func (g *GameConfig) ExportAsISO(outputFile string, progress chan int, errChan c
 	}
 }
 
+// GetSize returns the total size of all game parts
 func (g *GameConfig) GetSize() (int64, error) {
 	var s int64 = 0
 	for _, f := range g.Files {

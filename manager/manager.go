@@ -22,7 +22,7 @@ func InitManager(dir string) error {
 	if err := os.MkdirAll(path.Join(dataDir, "ART"), os.ModePerm); err != nil {
 		return err
 	}
-	if !utils.FileExists(configFile) {
+	if !utils.CheckFileExists(configFile) {
 		file, err := os.Create(configFile)
 		if err != nil {
 			return err

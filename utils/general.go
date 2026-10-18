@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -9,8 +8,8 @@ import (
 	"strings"
 )
 
-// FileExists checks if a file exists
-func FileExists(filePath string) bool {
+// CheckFileExists checks if a file exists
+func CheckFileExists(filePath string) bool {
 	_, err := os.Stat(filePath)
 	return !os.IsNotExist(err)
 }
@@ -31,19 +30,6 @@ func SortDirItems(first, second fs.DirEntry) int {
 		return -1
 	}
 	return 0
-}
-
-// GetFilesSizeSum get the size of every file and sums it together
-func GetFilesSizeSum(files []string) (int64, error) {
-	var size int64 = 0
-	for _, f := range files {
-		file, err := os.Stat(f)
-		if err != nil {
-			return 0, errors.New("error on file '" + f + "': " + err.Error())
-		}
-		size += file.Size()
-	}
-	return size, nil
 }
 
 // FileSizeToHumanReadable turns a file size that is in byte count to a human

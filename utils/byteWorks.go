@@ -20,7 +20,7 @@ var (
 func BytesToString(data []byte) string {
 	n := bytes.IndexByte(data, 0)
 	if n == -1 {
-    return string(data)
+		return string(data)
 	}
 	return string(data[:n])
 }
